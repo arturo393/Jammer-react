@@ -1,0 +1,174 @@
+#Syrscripter 1.2.6 Script Generation Tool for Syrus
+
+#Preliminar Steps
+>SRT;CONFIG<
+#>SXADP**U<
+
+#DESHABILITAR SAFE ENGINE CUT
+>SXASEM0<
+#SALIDA 1 Y 2 DESACTIVADA
+>SSSXP10<
+>SSSXP20<
+
+#RF Parameters
+#>SRFAweb.tmovil.cl<
+#>SRFLweb<
+#>SRFPweb<
+#>SRFI<
+
+#Unit's Identity
+#IMEI as ID
+#>SXAID1<
+
+#Destination Points
+##IP Destination Points
+>SXADP0000socket.safecar.cl;10600<
+>SXADP01U<
+>SXADP02U<
+>SXADP03U<
+>SXADP04U<
+
+##Telephone Destination Points
+>SXADP1010+56975189480<
+>SXADP1110+56977770213<
+>SXADP1210+56973007623<
+>SXADP1310+56958635500<
+>SXADP14U<
+
+#Destination Addresses
+>SDA0;P00,P15<
+
+#Extended formats normal
+>SXAEFA;VO;AD;BL;CF;IO;JO;DOP;SV;AL< 
+#ECU MONITOR
+>SXAEFB;OA;OB;OC;OD;OE;OF;OG;OH;OI;OJ;OK;OL;OM;ON;OO;OR;OT;OU;OV;OX;OY;OZ;YB;YD;YE;YF;YH;YI;YJ;YL;YM;YN;YO;YT< 
+#IBUTTON 
+>SXAEFC;IB< 
+
+#Event Definition
+>SGS0010060<    #Motion detection Speed Threshold 6Mph
+##Counter generators - Ignition related(Silent)
+>SED69SV0;F00+;XCT=SGC00TC00010;XCT=SGC01U;XCT=SGC02TR00060;XCT=SGC07DR00500;XCT=SGC08TC00300;XCT=SGC11U;XCT=SXAPSE<
+>SED68SV0;F00-;XCT=SGC01TC00010;XCT=SGC00U;XCT=SGC02U;XCT=SGC07U;XCT=SGC08U;XCT=SGC11TR0006000002<
+
+#Ignition Events
+##Ignition On
+#>SED01NA0;C00+;XCT=SXAITC<
+>SED01NA0;C00+<
+##Ignition Off
+>SED02NA0;C01+<
+
+#Movement Event
+>SXAGH001020<    #Heading Delta 45 Degrees
+>SED03NA0;J00C02|F00&+;XCT=SGC02TR00060<
+
+#Idle Condition Event
+>SED67SV0;S00!F00&+;XCT=SGC05TC0006000002<
+>SED66SV0;S00F00!|+;XCT=SGC05U<
+>SED05NA0;C05+;XCT=SGC05U<
+
+#Towing Alarm: Moving with Ignition Off
+>SED65SV0;F00!S00&F12&+;XCT=SGC06TC00010<
+>SED64SV0;F00S00!|F12!|+;XCT=SGC06U<
+>SED06NA0;C06+;XCT=SGC06U<
+
+#Aggressive Driving
+>SED07NA0;F16+<
+
+#Slow Traffic COndition
+>SED63SV0;C07+;XCT=SGC08TC00300<
+>SED09NA0;C08+<
+
+#Power Events
+##Power Disconnection
+>SED10NA0;F13-<
+##Power Re-connection
+>SED11NA0;F13+<
+
+#External GPS Antenna Short Circuit
+>SED12NA0;F04+<
+
+#SIM-Card Events
+##SIM-Card removed
+>SED62SV0;F08!+;XCT=SGC09TC00025;XCT=SGC10U<
+>SED13NA0;F08!C09&+;XCT=SGC09U<
+##SIM-Card inserted
+>SED61SV0;F08+;XCT=SGC10TC00025;XCT=SGC09U<
+>SED14NA0;F08C10&+;XCT=SGC10U<
+
+#Periodic report with Ignition Off
+>SED15NA0;C11+<
+
+#Inputs Detection Events
+##Input1
+>SED16NA0;IP1+<
+>SED17NA0;IP1-<
+##Input2
+>SED18NA0;IP2+<
+>SED19NA0;IP2-<
+##Input3
+>SED20NA0;IP3+<
+>SED21NA0;IP3-<
+
+#Safe engine turn Off enabled
+#To start the vehicle's Immobilization procedure send (SXASES1) or Keyword (Greater and Less than signs instead semicolons)
+#To cancel vehicle's Immobilization procedure send (SXASES0) or Keyword (Greater and Less than signs instead semicolons)
+#>SXASEM1<
+#>SED22NA0;G01+<
+
+#Jamming detection (over a minute in Jamming condition)
+>SED23NA0;G04+<
+
+#To configure the JO extended EV tag, use the following command:
+>SXAEFA;JO<
+
+#To configure an event that will be generated when the unit detects jamming, use the following command:
+
+>SED30NA0;F23+<
+
+#To configure an event that will be generated when the unit continues to detect jamming for over a minute, use the #following command:
+
+>SED31NA0;G04+<
+
+
+
+
+
+
+
+#To configure a report that includes the ID when an iButton is detected, use the following commands:
+#Define the extended-EV format A to include the IB tag which is the iButton ID:
+
+>SXAEFA;IB;00001807C488<
+
+#Define the event to use the extended-EV format:
+
+>SED00NA0;F18+<
+
+
+
+
+#Cuando se conecta el gps elimina el modo sleep
+#>SED26XV0;F13+;XCT=SXAPSE<
+#Cuando se desconecta, activa modo sleep
+#>SED27XV0;F13-;XCT=SXAPSA11100050030<
+
+#Setea el evento 28 que detecta cuando hay movimiento y borra el contador C18
+#>SED28XV0;F12+;XCT=SGC18U;XCT=SSSU000<
+#Setea el evento 29 que detecta cuando no hay movimiento y establece un timer C18 que cuenta hasta 5min
+#>SED29XV0;F12-;XCT=SGC18TC0000500060<
+#Setea la bandera de usuario U00 a positivo cuando no hay movimiento despues de 5 min C18
+#>SED30XV0;C18+;XCT=SSSU001<
+
+#>SED31XV0;F13U00&-;XCT=SXAPSE<
+#>SED32XV0;F13!U00&+;XCT=SXAPSA11100050030<
+
+
+
+
+#Sleep Mode
+>SXAPSE<
+
+
+##SYRUS
+## programable EVENT-ACTION ENGINE 
