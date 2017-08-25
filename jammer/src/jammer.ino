@@ -121,8 +121,8 @@ else { // JAMPIN == HIGH (no jamming)
 }
 
 
-//if (digitalRead(STARTPIN) == LOW && digitalRead(JAMPIN)== HIGH){
-//  Serial.println("STARTBUTTON");
-//  digitalWrite(ENGPIN,HIGH); // revisar si se enciende al cerrar la púerta
-//}
+if (digitalRead(STARTPIN) == LOW && digitalRead(JAMPIN)== HIGH){
+  Serial.println("STARTBUTTON");
+  digitalWrite(ENGPIN,HIGH); // revisar si se enciende al cerrar la púerta
+}
 }
