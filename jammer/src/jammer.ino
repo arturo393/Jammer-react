@@ -1,8 +1,4 @@
 #include<CountUpDownTimer.h>
-#include <OneWire.h>
-
-OneWire  ds(15);  // on pin 10 (a 4.7K resistor is necessary)
-byte addr[8];
 
 CountUpDownTimer Jam(UP, LOW); // Default precision is HIGH, but you can change
 CountUpDownTimer Jam2(UP, LOW); // Default precision is HIGH, but you can change it to also be LOW
@@ -12,13 +8,11 @@ int t_jam = 30;     // Jamming time in minutres
 int t_door = 30;    // door open time in minutres
 
 #define ENGPIN         3    // Relay pin 0 on/of
-#define LEDPIN        4    // Relay pin 1 on/off
-#define JAMPIN         7    // JAmming detector open/gnd
-#define DOOR1PIN       5    // Door switch open/gnd
+#define LEDPIN         4    // Relay pin 1 on/off
+#define JAMPIN         5    // JAmming detector open/gnd
+#define DOOR1PIN       7    // Door switch open/gnd
 #define DOOR2PIN       12    // Door switch Vcc/open
 #define STARTPIN       14   // restart engine
-
-
 
 #define JAM1TOUT       10    // time to shotdowown the the engine in secs
 #define JAM2TOUT       1     // time to shutdown the engine in min
@@ -54,29 +48,7 @@ void setup() {
 // the loop function runs over and over again forever
 void loop() {
 
-  byte result;
-
-  // search looks through all devices on the bus
-  ds.reset_search();
-
-  if(result = !ds.search(addr)) {
-    // Serial.println("Scanning...");
-  } else if(OneWire::crc8(addr, 7) != addr[7]) {
-    Serial.println("Invalid CRC");
-    delay(del);
-    return;
-  } else {
-    for(byte i=0; i<8; i++) {
-      Serial.print(addr[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.print("\n");
-    digitalWrite(ledpin, HIGH);
-    delay(1000);
-    digitalWrite(ledpin, LOW);
-  }
-
-Jam.Timer(); // run the timer
+ Jam.Timer(); // run the timer
 Jam2.Timer();
 Door1.Timer(); // run the timer
 Display.Timer();
@@ -132,7 +104,7 @@ else { // JAMPIN == HIGH (no jamming)
   Jam2.ResetTimer();
 
   // for display
-  digitalWrite(LEDPIN,HIGH);
+  digitalWrite(LEDPIN,LOW);
   if (Display.TimeHasChanged() ) {
     Serial.print ("Waiting for jammer for");
     Serial.print(Display.ShowHours());
@@ -148,8 +120,9 @@ else { // JAMPIN == HIGH (no jamming)
 
 }
 
-if (digitalRead(STARTPIN) == LOW && digitalRead(JAMPIN)== HIGH){
-  Serial.println("STARTBUTTON");
-  digitalWrite(ENGPIN,HIGH); // revisar si se enciende al cerrar la púerta
-}
+
+//if (digitalRead(STARTPIN) == LOW && digitalRead(JAMPIN)== HIGH){
+//  Serial.println("STARTBUTTON");
+//  digitalWrite(ENGPIN,HIGH); // revisar si se enciende al cerrar la púerta
+//}
 }
