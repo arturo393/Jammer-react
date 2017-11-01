@@ -34,26 +34,38 @@ int j_counter = 0;
 #define ILEDPIN 10
 #define READPIN 15
 #define WRITEPIN 16
-#define LED 10
 byte key_to_write[] = { 0x01, 0x00, 0x3E, 0x5C, 0x03, 0x00, 0x00, 0x35 };
 OneWire  ds(READPIN);
-OneWire  dw(WRITEPIN);
 
-bool WRITE = true;
 // define two tasks for Blink & JammerRead
 void TaskBlink( void *pvParameters );
 void TaskJammerRead( void *pvParameters );
 void TaskIbuttonRead( void *pvParameters);
+void TaskIbuttonWrite( void *pvParameters);
 // the setup function runs once when you press reset or power the board
+
+
+#include "OneWireHub.h"
+#include "DS2401.h"  // Serial Number
+
+constexpr uint8_t pin_led       { ILEDPIN };
+constexpr uint8_t pin_onewire   { WRITEPIN };
+
+auto hub     = OneWireHub(pin_onewire);
+auto ds1990A = DS2401( DS2401::family_code, 0x88, 0xC4, 0x07, 0x18, 0x00, 0x00 );
+
+
+
 void setup() {
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
 
+/*
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
   }
-
+*/
   // Now set up two tasks to run independently.
   xTaskCreate(
     TaskBlink
@@ -79,6 +91,14 @@ void setup() {
       , 3  // Priority
       ,  NULL );
 
+      xTaskCreate(
+        TaskIbuttonWrite
+        ,  (const portCHAR *) "IbuttonWrite"
+        ,  128  // Stack size
+        ,  NULL
+        , 3  // Priority
+        ,  NULL );
+
   // Now the task scheduler, which takes over control of scheduling individual tasks, is automatically started.
 }
 
@@ -94,60 +114,68 @@ void TaskIbuttonRead(void *pvParameters)  // This is a task.
 {
   (void) pvParameters;
 
-  pinMode(ILEDPIN,OUTPUT);
+
   digitalWrite(ILEDPIN,HIGH);
+
+  byte data[8];
 
   for(;;){
 
-  byte i;
-  byte data[8];
-
-  digitalWrite(ILEDPIN,LOW);
   vTaskDelay(2000/portTICK_PERIOD_MS);
-  digitalWrite(ILEDPIN,HIGH);
-
   if (ds.reset() !=1)
   {
     Serial.print("Esperando por ibutton\n");
-    digitalWrite(ILEDPIN,HIGH);
     vTaskDelay(3000 / portTICK_PERIOD_MS);
-    digitalWrite(ILEDPIN,LOW);
   }
   else {
-
   printStatus("Reading iButton Key.");
   readKey(data);
   Serial.print("CRC:\t");  Serial.println(OneWire::crc8(data, 7), HEX);
-
-  if (data[0] & data[1] & data[2] & data[3] & data[4] & data[5] & data[6] & data[7] == 0xFF)
-  {
-    printStatus("iButton is clear!");
   }
-  else {
+}
+}
 
-    if(WRITE == true){
-      // Check wether the key has been written
-      for (i = 0; i < 8; i++)
-        if (data[i] != key_to_write[i])  break;
+void TaskIbuttonWrite(void *pvParameters)  // This is a task.
+{
+  (void) pvParameters;
+
+  Serial.println("OneWire-Hub DS2401 Serial Number used as iButton");
+
+  pinMode(pin_led, OUTPUT);
+
+
+  // Test-Cases: the following code is just to show basic functions, can be removed any time
+  // ds2401A and B alternate with each LED-Blink-Change, so there is only one online at a time
+  // ds2401C is always online
+
+  Serial.println("config done");
+
+  for(;;){
+    // following function must be called periodically
+    hub.poll();
+
+    // Blink triggers the state-change
+    if (blinking())
+    {
+        static bool flipFlop = 0;
+        // Change between Sensor A and B every 50 seconds
+        if (flipFlop)
+        {
+            flipFlop = 0;
+            hub.detach(ds1990A);
+            Serial.println(".. is inactive");
+        }
         else
-          if (i == 7){
-            printStatus("...iButton is already written!");
-
-          }
-
-      // Froce writing
-      Serial.print("\nWritting new iButton Key:");
-      if (! writeKey(key_to_write))  printStatus("iButton writing has been done!");
-      else  printStatus("Failed to write the iButton!");
+        {
+            flipFlop = 1;
+            hub.attach(ds1990A);
+            Serial.println(".. is active");
+        }
     }
-
+vTaskDelay(100/portTICK_PERIOD_MS);
   }
 }
 
-
-}
-
-}
 
 void TaskBlink(void *pvParameters)  // This is a task.
 {
@@ -169,11 +197,11 @@ void TaskBlink(void *pvParameters)  // This is a task.
     Serial.print(" Status: ");
     Serial.print(HIGH);
     Serial.print('\t');
-    vTaskDelay( 5000 / portTICK_PERIOD_MS ); // wait for one second
-    digitalWrite(ILEDPIN, LOW);    // turn the LED off by making the voltage LOW    Serial.print("\t Status: ");
+    vTaskDelay( 10 / portTICK_PERIOD_MS ); // wait for one second
+    Serial.print("\t Status: ");
     Serial.print(LOW);
     Serial.print('\t');
-    vTaskDelay( 5000 / portTICK_PERIOD_MS ); // wait for one second
+    vTaskDelay( 10 / portTICK_PERIOD_MS ); // wait for one second
   }
 }
 
@@ -296,8 +324,8 @@ void TaskJammerRead(void *pvParameters)  // This is a task.
       if (Libre.ShowMinutes() >= M_TIMEOUT_MIN && Libre.ShowSeconds() >= M_TIMEOUT_SECS )
         digitalWrite(CCPIN,HIGH);
     }
-
-}
+    vTaskDelay(2000/portTICK_PERIOD_MS);
+  }
 }
 
 #ifndef RW1990_2
@@ -385,4 +413,21 @@ byte writeKey(byte *data)
 void printStatus(char *state)
 {
   Serial.print("\nStatus:\t"); Serial.println(state);
+}
+
+bool blinking(void)
+{
+    const  uint32_t interval    = 1000;          // interval at which to blink (milliseconds)
+    static uint32_t nextMillis  = millis();     // will store next time LED will updated
+
+    if (millis() > nextMillis)
+    {
+        nextMillis += interval;             // save the next time you blinked the LED
+        static uint8_t ledState = LOW;      // ledState used to set the LED
+        if (ledState == LOW)    ledState = HIGH;
+        else                    ledState = LOW;
+        digitalWrite(pin_led, ledState);
+        return 1;
+    }
+    return 0;
 }

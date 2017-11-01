@@ -5,7 +5,7 @@
 #define READPIN 15
 #define WRITEPIN 16
 #define LED 10
-//#define WRITE      /*Uncomment if need to write a key.*/
+#define WRITE      /*Uncomment if need to write a key.*/
 //#define RW1990_2   /*Uncomment if you deal with RW1990.2*/
 
 //byte key_to_write[] = { 0x01, 0xE4, 0x6D, 0x7B, 0x00, 0x00, 0x00, 0x09 };  /*Home01*/
@@ -69,7 +69,7 @@ void loop(void) {
 
   // Froce writing
   Serial.print("\nWritting new iButton Key:");
-  if (! writeKey(key_to_write))  printStatus("iButton writing has been done!");
+  if (! writeKey(data))  printStatus("iButton writing has been done!");
   else  printStatus("Failed to write the iButton!");
 
 }
@@ -129,28 +129,37 @@ delay(50);
 
 byte writeKey(byte *data)
 {
-  ds.reset();  ds.write(0xD1);
+  dw.reset();  dw.write(0xD1);
   //send logical 0
   digitalWrite(WRITEPIN, LOW); pinMode(WRITEPIN, OUTPUT); delayMicroseconds(60);
   pinMode(WRITEPIN, INPUT); digitalWrite(WRITEPIN, HIGH); delay(10);
 
-  ds.reset();  ds.write(0xD5);
+  dw.reset();  dw.write(0xD5);
+  dw.write_bytes(data, 8);
   for(byte i=0; i<8; i++)
   {
-    writeByte(key_to_write[i]);
-    Serial.print('*');
+    writeByte(data[i]);
+    Serial.print(data[i], HEX);
+    if (i != 7) Serial.print(":");
   }
 
-  ds.reset();  ds.write(0xD1);
+  dw.reset();  dw.write(0xD1);
   //send logical 1
   digitalWrite(WRITEPIN, LOW); pinMode(WRITEPIN, OUTPUT); delayMicroseconds(10);
   pinMode(WRITEPIN, INPUT); digitalWrite(WRITEPIN, HIGH); delay(10);
 
   //Validate write operation.
   byte data_r[8];
-  ds.skip();  ds.reset();  ds.write(0x33);  //RD cmd
-  ds.read_bytes(data_r, 8);
+  dw.skip();  dw.reset();  dw.write(0x33);  //RD cmd
+  dw.read_bytes(data_r, 8);
 
+  Serial.print("Validate: ");
+  for(byte i=0; i<8; i++)
+  {
+    Serial.print(data_r[i], HEX);
+    if (i != 7) Serial.print(":");
+  }
+  Serial.println();
   for (byte i = 0; i < 8; i++)
     if (data_r[i] != data[i])  return -1;
 
