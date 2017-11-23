@@ -1,5 +1,11 @@
-#include<CountUpDownTimer.h>
+#include <CountUpDownTimer.h>
+#include "OneWireHub.h"
+#include "DS2401.h"  // Serial Number
 
+constexpr uint8_t pin_led       { 10 };
+constexpr uint8_t pin_onewire   { 12 };
+auto hub     = OneWireHub(pin_onewire);
+auto ds1990A = DS2401( DS2401::family_code, 0x88, 0xC4, 0x07, 0x18, 0x00, 0x00 );
 
 CountUpDownTimer Jam(UP, LOW); // Default precision is HIGH, but you can change
 CountUpDownTimer JAMAlert(UP, LOW); // Default precision is HIGH, but you can change it to also be LOW
@@ -38,6 +44,8 @@ void setup() {
   pinMode(CCPIN, OUTPUT);
   pinMode(LEDPIN, OUTPUT);
 
+    hub.attach(ds1990A); // always online
+
 
   pinMode(JAMPIN, INPUT_PULLUP);
   pinMode(DOOR1PIN, INPUT_PULLUP);
@@ -58,7 +66,7 @@ void setup() {
 
 // the loop function runs over and over again forever
 void loop() {
-
+  hub.poll();
   JAMAlert.Timer();
   Door1.Timer(); // run the timer
 
