@@ -1,0 +1,27 @@
+* Z:\home\arturo\Jammer-react\Draft1.asc
+XU1 N006 0 N002 N010 PC817 Igain=1m
+D1 0 N006 D
+V1 N005 0 PULSE(0 5 1 0 0 2 4 3)
+V2 N002 0 5
+R1 N006 N005 1k
+XU2 N008 N012 N009 0 PC817 Igain=1m
+D2 N012 N008 D
+R3 N008 N007 10k
+R4 N009 0 100mR
+V3 N007 0 PULSE(0 5 1 0 0 2 4 3)
+Q1 N003 N011 0 0 2N3055
+R2 N011 N010 1kR
+R5 N001 N003 1kR
+R6 N004 0 10k
+S1 N004 N001 N001 N003 MYSW
+V4 N001 0 24
+.model D D
+.lib C:\users\arturo\Mis Documentos\LTspiceXVII\lib\cmp\standard.dio
+.model NPN NPN
+.model PNP PNP
+.lib C:\users\arturo\Mis Documentos\LTspiceXVII\lib\cmp\standard.bjt
+.tran 10
+.model MYSW SW(Ron=1 Roff=1Meg Vt=12 Vh=0)
+.lib PC817.sub
+.backanno
+.end
