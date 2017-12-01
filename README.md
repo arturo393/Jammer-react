@@ -4,9 +4,9 @@ Sistem designed complement the AntiJammer of the Teltonika FMA120 devices.
 To-Do List
 
 ## Software
-1. Implement Free-Rtos library.
-2. Implement OneWire Reader.
-3. Implement OneWire Writer.
+1.- Implement Free-Rtos library.
+2.- Implement OneWire Reader.
+3.- Implement OneWire Writer.
 4-.
 
 ## Hardware
