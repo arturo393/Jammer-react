@@ -2,8 +2,8 @@
 #include "OneWireHub.h"
 #include "DS2401.h"  // Serial Number
 
-constexpr uint8_t pin_led       { 10 };
-constexpr uint8_t pin_onewire   { 12 };
+constexpr uint8_t pin_led       { 4 };
+constexpr uint8_t pin_onewire   { 5 };
 auto hub     = OneWireHub(pin_onewire);
 auto ds1990A = DS2401( DS2401::family_code, 0x88, 0xC4, 0x07, 0x18, 0x00, 0x00 );
 
@@ -15,11 +15,10 @@ int t_jam = 30;     // Jamming time in minutres
 int t_door = 30;    // door open time in minutres
 
 #define CCPIN          10    // Corta corriente
-#define LEDPIN         4    // Relay pin 1 on/off
+#define LEDPIN         11    // Relay pin 1 on/off
 #define JAMPIN         8    // JAmming detector open/gnd
 #define DOOR1PIN       9    // Door switch open/gnd
-#define DOOR2PIN           // Door switch Vcc/open
-#define STARTPIN       11   // restart engine
+#define STARTPIN       6   // restart engine
 
 #define JAM1TOUT       10    // time to shotdowown the the engine in secs
 #define J_TIMEOUT_SECS 30    // time to shutdown the engine in min
@@ -32,54 +31,51 @@ boolean toggle = false;
 
 
 //Variables de estado
-bool JAMMER;
+bool JAMMERALERT;
 bool CC_ESTADO;
 
 int j_counter = 0;
 void setup() {
 
-
   Serial.begin(9600);
 
   pinMode(CCPIN, OUTPUT);
   pinMode(LEDPIN, OUTPUT);
-
-    hub.attach(ds1990A); // always online
-
-
   pinMode(JAMPIN, INPUT_PULLUP);
   pinMode(DOOR1PIN, INPUT_PULLUP);
-//  pinMode(DOOR2PIN, INPUT_PULLUP);
   pinMode(STARTPIN, INPUT_PULLUP);
 
-  digitalWrite(CCPIN, HIGH);
-  digitalWrite(LEDPIN, LOW);
+  digitalWrite(CCPIN, LOW);
+  digitalWrite(LEDPIN, HIGH);
 
   Jam.StartTimer();
   JAMAlert.StartTimer();
   Door1.StartTimer();
   Libre.StartTimer();
 
-  JAMMER = false;
+  JAMMERALERT = false;
 
+//  hub.attach(ds1990A); // always online
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  hub.poll();
-  JAMAlert.Timer();
-  Door1.Timer(); // run the timer
+//  hub.poll();
 
 
   if (digitalRead(JAMPIN) == LOW ) {
     // configuración de timer cuando hay jamming
     Jam.Timer();             // comienza el jamming
     Libre.ResetTimer();    // para el Libre del tiempo
+    JAMAlert.ResetTimer();
+
+    // Actua
+    digitalWrite(LEDPIN,HIGH);
+    JAMMERALERT = true;
 
     // muestra el tiempo
-
     if (Jam.TimeHasChanged()){
-      Serial.print ("Jamming detectado durante ");
+      Serial.print (" Jamming detectado durante ");
       Serial.print(Jam.ShowHours());
       Serial.print(":");
       Serial.print(Jam.ShowMinutes());
@@ -87,9 +83,6 @@ void loop() {
       Serial.println(Jam.ShowSeconds());
     }
 
-    // Actua
-    digitalWrite(LEDPIN,HIGH);
-    JAMMER = true;
   }
 
   else { // JAMPIN == HIGH (no jamming)
@@ -98,34 +91,45 @@ void loop() {
     Jam.ResetTimer();
     Libre.Timer();
 
+    // reinicia el timer despues de 10 minutos
     if(Libre.ShowMinutes() >= 10 ){
       Libre.ResetTimer();
     }
-    // muestra el tiempo
+
+    // Actua
+    digitalWrite(LEDPIN,LOW);
+
+   // muestra el tiempo
 
     if (Libre.TimeHasChanged() ) {
-      Serial.print ("Sin Jammer durante ");
+      Serial.print ("  Sin Jammer durante ");
       Serial.print(Libre.ShowHours());
       Serial.print(":");
       Serial.print(Libre.ShowMinutes());
       Serial.print(":");
       Serial.println(Libre.ShowSeconds());
-      toggle = !toggle;
     }
 
-    // Actua
-    digitalWrite(LEDPIN,LOW);
-    if(JAMMER == true){
-      digitalWrite(LEDPIN,toggle);
-    }
     if(Libre.ShowSeconds() >= J_TIMEOUT_SECS && Libre.ShowMinutes() >= J_TIMEOUT_MIN ){
-      JAMMER = false;
+      JAMMERALERT = false;
     }
   }// fin de la detección del jamming
 
 
-  if (JAMMER == true){// Si se detectó el jammer
+
+  if (JAMMERALERT == true){// Si se detectó el jammer
     JAMAlert.Timer();
+
+
+
+    if(digitalRead(DOOR1PIN) == HIGH){
+      Door1.Timer();
+      digitalWrite(CCPIN, HIGH);
+    }
+    else {
+      Door1.ResetTimer();
+    }
+
 
     if (JAMAlert.TimeHasChanged() ) {
       Serial.print ("Alerta Jammer ");
@@ -133,12 +137,19 @@ void loop() {
       Serial.print(":");
       Serial.print(JAMAlert.ShowMinutes());
       Serial.print(":");
-      Serial.println(JAMAlert.ShowSeconds());
+      Serial.print(JAMAlert.ShowSeconds());
+      toggle != toggle;
+      digitalWrite(LEDPIN,toggle);
+
     }
 
-    if(digitalRead(DOOR1PIN) == HIGH){
-      digitalWrite(CCPIN, LOW);
-      CC_ESTADO = false;
+    if (Door1.TimeHasChanged() ) {
+      Serial.print ("  Puerta Abierta durante ");
+      Serial.print(Door1.ShowHours());
+      Serial.print(":");
+      Serial.print(Door1.ShowMinutes());
+      Serial.print(":");
+      Serial.print(Door1.ShowSeconds());
     }
 
   } // no hay alerta de jammer
@@ -147,11 +158,11 @@ void loop() {
 
     if (digitalRead(STARTPIN) == LOW){
       Serial.println("STARTBUTTON");
-      digitalWrite(CCPIN,HIGH); // revisar si se enciende al cerrar la púerta
+      digitalWrite(CCPIN,LOW); // revisar si se enciende al cerrar la púerta
     }
 
     if (Libre.ShowMinutes() >= M_TIMEOUT_MIN && Libre.ShowSeconds() >= M_TIMEOUT_SECS )
-      digitalWrite(CCPIN,HIGH);
+      digitalWrite(CCPIN,LOW);
   }
 
 
