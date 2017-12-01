@@ -15,7 +15,7 @@ int t_jam = 30;     // Jamming time in minutres
 int t_door = 30;    // door open time in minutres
 
 #define CCPIN          10    // Corta corriente
-#define LEDPIN         11    // Relay pin 1 on/off
+#define LEDPIN         16    // Relay pin 1 on/off
 #define JAMPIN         8    // JAmming detector open/gnd
 #define DOOR1PIN       9    // Door switch open/gnd
 #define STARTPIN       6   // restart engine
@@ -46,7 +46,7 @@ void setup() {
   pinMode(STARTPIN, INPUT_PULLUP);
 
   digitalWrite(CCPIN, LOW);
-  digitalWrite(LEDPIN, HIGH);
+  digitalWrite(LEDPIN, LOW);
 
   Jam.StartTimer();
   JAMAlert.StartTimer();
@@ -129,6 +129,8 @@ void loop() {
     else {
       Door1.ResetTimer();
     }
+    
+    digitalWrite(LEDPIN,toggle);
 
 
     if (JAMAlert.TimeHasChanged() ) {
@@ -138,9 +140,7 @@ void loop() {
       Serial.print(JAMAlert.ShowMinutes());
       Serial.print(":");
       Serial.print(JAMAlert.ShowSeconds());
-      toggle != toggle;
-      digitalWrite(LEDPIN,toggle);
-
+      toggle = !toggle;
     }
 
     if (Door1.TimeHasChanged() ) {
@@ -153,6 +153,7 @@ void loop() {
     }
 
   } // no hay alerta de jammer
+
   else {
     JAMAlert.ResetTimer();
 
