@@ -1,29 +1,19 @@
 # Jammer-react
 Sistem designed complement the AntiJammer of the Teltonika FMA120 devices.
 
-To-Do List
 
-## Software
-1. Implement Free-Rtos library.
-2. Implement OneWire Reader.
-3. Implement OneWire Writer.
-4.
 
-## Hardware
-1. Change the microcontroller
-2. Change the DC-DC
-3. Work on the open circuit states. (Especifically on the 5 wire)
-4. Add GPS module.
-5. Add a 3G module.
-6. Check the One-wire In and OUT.
-7. Separetes the ground of the car with the mic's ground (using two dc-dc supply)
-## Case
-1. Make a new one.
+## Software Protocol
 
-## Complete System
-1. Test in differente places for jamming.
-2. Test with jammer.
-3. Test within  an entire day.
+1. Constantemente se revisa JAMIN.
+2. If JAMIN == LOW.
+ 2.1 JAMOUNT  = LOW. por 90 (s)
+ 2.2 DOUT intercambia entre LOW y abierto duranta 90 (s).
+ 2.3 Se entra en modo alarma durante 90 (s)
+3. Si durante el modo alarma DOORIN == Abierto
+ 3.1 JAMOUT = LOW durante5 minutos despues que termine el modo alarma
+
+
 
 
 ## Documentation
