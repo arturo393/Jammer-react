@@ -1,11 +1,12 @@
 #include <CountUpDownTimer.h>
-#include "OneWireHub.h"
-#include "DS2401.h"  // Serial Number
 
-constexpr uint8_t pin_led       { 4 };
-constexpr uint8_t pin_onewire   { 5 };
-auto hub     = OneWireHub(pin_onewire);
-auto ds1990A = DS2401( DS2401::family_code, 0x88, 0xC4, 0x07, 0x18, 0x00, 0x00 );
+//#include "OneWireHub.h"
+//#include "DS2401.h"  // Serial Number
+
+//constexpr uint8_t pin_led       { 4 };
+//constexpr uint8_t pin_onewire   { 5 };
+//auto hub     = OneWireHub(pin_onewire);
+//auto ds1990A = DS2401( DS2401::family_code, 0x88, 0xC4, 0x07, 0x18, 0x00, 0x00 );
 
 CountUpDownTimer Jam(UP, LOW); // Default precision is HIGH, but you can change
 CountUpDownTimer JAMAlert(UP, LOW); // Default precision is HIGH, but you can change it to also be LOW
@@ -129,7 +130,7 @@ void loop() {
     else {
       Door1.ResetTimer();
     }
-    
+
     digitalWrite(LEDPIN,toggle);
 
 
