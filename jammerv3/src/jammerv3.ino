@@ -145,10 +145,7 @@ if(SENSOR_INVERT){
     else {
       Door1.ResetTimer();
     }
-<<<<<<< HEAD
-=======
   }
->>>>>>> teltonika
 
     digitalWrite(LEDPIN,toggle);
 
