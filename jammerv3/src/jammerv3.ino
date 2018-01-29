@@ -1,11 +1,4 @@
 #include <CountUpDownTimer.h>
-#include "OneWireHub.h"
-#include "DS2401.h"  // Serial Number
-
-constexpr uint8_t pin_led       { 4 };
-constexpr uint8_t pin_onewire   { 5 };
-auto hub     = OneWireHub(pin_onewire);
-auto ds1990A = DS2401( DS2401::family_code, 0x88, 0xC4, 0x07, 0x18, 0x00, 0x00 );
 
 CountUpDownTimer Jam(UP, LOW); // Default precision is HIGH, but you can change
 CountUpDownTimer JAMAlert(UP, LOW); // Default precision is HIGH, but you can change it to also be LOW
@@ -15,10 +8,11 @@ int t_jam = 30;     // Jamming time in minutres
 int t_door = 30;    // door open time in minutres
 
 #define CCPIN          10    // Corta corriente
-#define LEDPIN         16    // Relay pin 1 on/off
+#define LEDPIN         14    // Relay pin 1 on/off
 #define JAMPIN         8    // JAmming detector open/gnd
 #define DOOR1PIN       9    // Door switch open/gnd
 #define STARTPIN       6   // restart engine
+#define GPSPIN         16
 
 #define JAM1TOUT       10    // time to shotdowown the the engine in secs
 #define J_TIMEOUT_SECS 30    // time to shutdown the engine in min
@@ -26,8 +20,11 @@ int t_door = 30;    // door open time in minutres
 #define M_TIMEOUT_SECS 30    // tiempo para activar el motor después del jamming
 #define M_TIMEOUT_MIN   6
 
+
+bool SENSOR_INVERT = false; // sensor invertido con rele = true;
 // the setup function runs once when you press reset or power the board
 boolean toggle = false;
+boolean status= false;
 
 
 //Variables de estado
@@ -39,14 +36,16 @@ void setup() {
 
   Serial.begin(9600);
 
-  pinMode(CCPIN, OUTPUT);
+  pinMode(CCPIN , OUTPUT);
   pinMode(LEDPIN, OUTPUT);
-  pinMode(JAMPIN, INPUT_PULLUP);
+  pinMode(GPSPIN, OUTPUT);
+  pinMode(JAMPIN  , INPUT_PULLUP);
   pinMode(DOOR1PIN, INPUT_PULLUP);
   pinMode(STARTPIN, INPUT_PULLUP);
 
-  digitalWrite(CCPIN, LOW);
+  digitalWrite(CCPIN , LOW);
   digitalWrite(LEDPIN, LOW);
+  digitalWrite(GPSPIN, HIGH);
 
   Jam.StartTimer();
   JAMAlert.StartTimer();
@@ -71,6 +70,7 @@ void loop() {
 
     // Actua
     digitalWrite(LEDPIN,HIGH);
+
     JAMMERALERT = true;
 
     // muestra el tiempo
@@ -90,16 +90,23 @@ void loop() {
     // configura timers cuando no hay jamming
     Jam.ResetTimer();
     Libre.Timer();
+  //  digitalWrite(GPSPIN,HIGH);
 
     // reinicia el timer despues de 10 minutos
     if(Libre.ShowMinutes() >= 10 ){
       Libre.ResetTimer();
+      digitalWrite(GPSPIN,LOW);
     }
+    if(Libre.ShowMinutes() >= 1 ){
+      digitalWrite(GPSPIN,HIGH);
+    }
+
 
     // Actua
     digitalWrite(LEDPIN,LOW);
 
-   // muestra el tiempo
+
+    // muestra el tiempo
 
     if (Libre.TimeHasChanged() ) {
       Serial.print ("  Sin Jammer durante ");
@@ -121,15 +128,25 @@ void loop() {
     JAMAlert.Timer();
 
 
-
-    if(digitalRead(DOOR1PIN) == HIGH){
+if(SENSOR_INVERT){
+    if(digitalRead(DOOR1PIN) == LOW){
       Door1.Timer();
-      digitalWrite(CCPIN, HIGH);
+      digitalWrite(CCPIN,HIGH);
     }
     else {
       Door1.ResetTimer();
     }
-    
+  }
+  else {
+    if(digitalRead(DOOR1PIN) == HIGH){
+      Door1.Timer();
+      digitalWrite(CCPIN,HIGH);
+    }
+    else {
+      Door1.ResetTimer();
+    }
+  }
+
     digitalWrite(LEDPIN,toggle);
 
 
