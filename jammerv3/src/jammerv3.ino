@@ -42,8 +42,11 @@ void setup() {
   pinMode(JAMPIN  , INPUT_PULLUP);
   pinMode(DOOR1PIN, INPUT_PULLUP);
   pinMode(STARTPIN, INPUT_PULLUP);
-
-  digitalWrite(CCPIN , LOW);
+  if(RELE_ON == false){
+  digitalWrite(CCPIN , HIGH);
+} else {
+  digitalWrite(CCPIN,LOW);
+}
   digitalWrite(LEDPIN, LOW);
   digitalWrite(GPSPIN, HIGH);
 
@@ -131,7 +134,11 @@ void loop() {
 if(SENSOR_INVERT){
     if(digitalRead(DOOR1PIN) == LOW){
       Door1.Timer();
+      if(RELE_ON == true){
       digitalWrite(CCPIN,HIGH);
+    } else {
+      digitalWrite(CCPIN, LOW);
+    }
     }
     else {
       Door1.ResetTimer();
@@ -140,7 +147,11 @@ if(SENSOR_INVERT){
   else {
     if(digitalRead(DOOR1PIN) == HIGH){
       Door1.Timer();
+      if(RELE_ON == true){
       digitalWrite(CCPIN,HIGH);
+    } else {
+      digitalWrite(CCPIN, LOW);
+    }
     }
     else {
       Door1.ResetTimer();
@@ -176,11 +187,19 @@ if(SENSOR_INVERT){
 
     if (digitalRead(STARTPIN) == LOW){
       Serial.println("STARTBUTTON");
-      digitalWrite(CCPIN,LOW); // revisar si se enciende al cerrar la púerta
+      if(RELE_ON == true){
+      digitalWrite(CCPIN,LOW);
+    } else {
+      digitalWrite(CCPIN, HIGH);
+    }
     }
 
     if (Libre.ShowMinutes() >= M_TIMEOUT_MIN && Libre.ShowSeconds() >= M_TIMEOUT_SECS )
-      digitalWrite(CCPIN,LOW);
+    if(RELE_ON == true){
+    digitalWrite(CCPIN,LOW);
+  } else {
+    digitalWrite(CCPIN, HIGH);
+  }
   }
 
 
