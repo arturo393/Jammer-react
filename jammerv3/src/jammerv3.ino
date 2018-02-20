@@ -21,7 +21,8 @@ int t_door = 30;    // door open time in minutres
 #define M_TIMEOUT_MIN   6
 
 
-bool SENSOR_INVERT = false; // sensor invertido con rele = true;
+bool SENSOR_INVERT = true; // sensor invertido con rele = true;
+bool RELE_ON = true;      // true si se usa rele ; false si no se usa.
 // the setup function runs once when you press reset or power the board
 boolean toggle = false;
 boolean status= false;
