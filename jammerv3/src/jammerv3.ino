@@ -93,17 +93,6 @@ void loop() {
     // configura timers cuando no hay jamming
     Jam.ResetTimer();
     Libre.Timer();
-  //  digitalWrite(GPSPIN,HIGH);
-
-    // reinicia el timer despues de 10 minutos
-    if(Libre.ShowMinutes() >= 10 ){
-      Libre.ResetTimer();
-      digitalWrite(GPSPIN,LOW);
-    }
-    if(Libre.ShowMinutes() >= 1 ){
-      digitalWrite(GPSPIN,HIGH);
-    }
-
 
     // Actua
     digitalWrite(LEDPIN,LOW);
