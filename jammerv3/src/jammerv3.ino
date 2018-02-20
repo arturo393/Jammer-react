@@ -56,7 +56,7 @@ void setup() {
   Libre.StartTimer();
 
   JAMMERALERT = false;
-
+  delay(3000);
 //  hub.attach(ds1990A); // always online
 }
 
