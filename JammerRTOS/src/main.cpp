@@ -188,27 +188,27 @@ static void vCCTask(void *pvParameters) {
       Serial.print("2 minutes Jammer detection ... so you have 2 minutes slow down");
       digitalWrite(CCPin, HIGH);
       digitalWrite(JammerAlertPin, LOW);
-      Serial.print("CC on! ");
+      Serial.print("CC on by jammer! ");
       vTaskDelay(configTICK_RATE_HZ*3);
 
       digitalWrite(CCPin, LOW);
       digitalWrite(JammerAlertPin, HIGH);
-      Serial.print("CC off! ");
+      Serial.print("CC off by jammer! ");
       vTaskDelay(configTICK_RATE_HZ*10);
 
       digitalWrite(CCPin, HIGH);
       digitalWrite(JammerAlertPin, LOW);
-      Serial.print("CC on! ");
+      Serial.print("CC on by jammer!  ");
       vTaskDelay(configTICK_RATE_HZ*3);
 
       digitalWrite(JammerAlertPin, HIGH);
       digitalWrite(CCPin, LOW);
-      Serial.print("CC off! ");
+      Serial.print("CC off  by jammer!! ");
       vTaskDelay(configTICK_RATE_HZ*10);
 
       digitalWrite(CCPin, HIGH);
       digitalWrite(JammerAlertPin, LOW);
-      Serial.println("CC on! ");
+      Serial.println("CC on by jammer! ! ");
     }
 
     if( ( ulNotifiedValue & 0x04 ) != 0 )

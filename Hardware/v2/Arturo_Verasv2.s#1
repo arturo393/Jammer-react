@@ -9812,12 +9812,6 @@ general purpose rectifier, 1 A</description>
 <wire x1="75" y1="96" x2="75" y2="97" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$12" class="0">
-<segment>
-<wire x1="-12" y1="54" x2="-12" y2="20" width="0.1524" layer="91"/>
-<wire x1="-12" y1="20" x2="-2" y2="20" width="0.1524" layer="91"/>
-</segment>
-</net>
 </nets>
 </sheet>
 </sheets>
