@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="8.7.1">
+<eagle version="8.3.2">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -1697,11 +1697,10 @@ design rules under a new name.</description>
 <param name="slThermalsForVias" value="0"/>
 <param name="dpMaxLengthDifference" value="10mm"/>
 <param name="dpGapFactor" value="2.5"/>
+<param name="checkGrid" value="0"/>
 <param name="checkAngle" value="0"/>
 <param name="checkFont" value="1"/>
 <param name="checkRestrict" value="1"/>
-<param name="checkStop" value="0"/>
-<param name="checkValues" value="0"/>
 <param name="useDiameter" value="13"/>
 <param name="maxErrors" value="50"/>
 </designrules>
@@ -1802,7 +1801,7 @@ design rules under a new name.</description>
 </pass>
 </autorouter>
 <elements>
-<element name="ARDUINO_PRO-MINI" library="diy-modules" package="ARDUINO-PRO-MINI#SMP" value="ARDUINO-PRO-MINI-5.0V#SMP" x="60.96" y="46.99" rot="R270"/>
+<element name="ARDUINO_PRO-MINI" library="diy-modules" package="ARDUINO-PRO-MINI#SMP" value="ARDUINO-PRO-MINI-5.0V#SMP" x="34.29" y="62.23" rot="R270"/>
 <element name="D7" library="diode" library_urn="urn:adsk.eagle:library:210" package="DO41-10" package3d_urn="urn:adsk.eagle:package:43336/1" value="1N4004" x="3.81" y="16.51" rot="R270"/>
 <element name="OUTPUT" library="con-molex" library_urn="urn:adsk.eagle:library:165" package="22-23-2051" value="22-23-2051" x="44.45" y="3.81">
 <attribute name="MF" value="MOLEX" x="44.45" y="3.81" size="1.778" layer="27" display="off"/>
@@ -1816,9 +1815,9 @@ design rules under a new name.</description>
 <attribute name="OC_FARNELL" value="1462950" x="12.7" y="3.81" size="1.778" layer="27" display="off"/>
 <attribute name="OC_NEWARK" value="30C0862" x="12.7" y="3.81" size="1.778" layer="27" display="off"/>
 </element>
-<element name="R1" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330" x="91.44" y="29.21" rot="R90"/>
-<element name="R11" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="47k" x="33.02" y="48.26" rot="R270"/>
-<element name="R12" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="3k3" x="35.56" y="50.8" rot="R270"/>
+<element name="R1" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330" x="22.86" y="15.24" rot="R90"/>
+<element name="R11" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="47k" x="38.1" y="15.24" rot="R270"/>
+<element name="R12" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="3k3" x="30.48" y="15.24" rot="R270"/>
 <element name="R13" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330" x="15.24" y="15.24" rot="R90"/>
 <element name="R16" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="3k3" x="19.05" y="15.24" rot="R270"/>
 <element name="R2" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330" x="11.43" y="15.24" rot="R90"/>
@@ -1826,13 +1825,13 @@ design rules under a new name.</description>
 <element name="R5" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330" x="34.29" y="15.24" rot="R270"/>
 <element name="R8" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="3k3" x="26.67" y="15.24" rot="R270"/>
 <element name="STEP_DOWN" library="diy-modules" package="DC-DC-STEP-DOWN-LM2596" value="DC-DC-STEP-DOWN-LM2596" x="12.7" y="46.99" rot="R90"/>
-<element name="T1" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="86.36" y="13.97" rot="R180"/>
-<element name="T3" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="64.77" y="22.86" rot="R180"/>
-<element name="T4" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="74.93" y="72.39" rot="R180"/>
-<element name="T5" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="41.91" y="55.88" rot="R180"/>
-<element name="T6" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="90.17" y="54.61" rot="R180"/>
-<element name="T7" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="76.2" y="38.1" rot="R180"/>
-<element name="T8" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="90.17" y="67.31" rot="R270"/>
+<element name="T1" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="39.37" y="31.75" rot="R180"/>
+<element name="T3" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="27.94" y="31.75" rot="R180"/>
+<element name="T4" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="27.94" y="24.13" rot="R180"/>
+<element name="T5" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="49.53" y="31.75" rot="R270"/>
+<element name="T6" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="39.37" y="24.13" rot="R180"/>
+<element name="T7" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="36.83" y="38.1" rot="R180"/>
+<element name="T8" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92-ECB" package3d_urn="urn:adsk.eagle:package:29929/2" value="2SC1815" x="27.94" y="38.1" rot="R180"/>
 <element name="UART" library="con-molex" library_urn="urn:adsk.eagle:library:165" package="22-23-2031" value="22-23-2031" x="16.51" y="74.93">
 <attribute name="MF" value="MOLEX" x="16.51" y="74.93" size="1.778" layer="27" display="off"/>
 <attribute name="MPN" value="22-23-2031" x="16.51" y="74.93" size="1.778" layer="27" display="off"/>
@@ -1850,14 +1849,14 @@ design rules under a new name.</description>
 <signal name="VCC">
 <contactref element="ARDUINO_PRO-MINI" pad="J6.4"/>
 <contactref element="POWER" pad="3"/>
-<wire x1="15.24" y1="3.81" x2="68.58" y2="52.07" width="0" layer="19" extent="1-1"/>
+<wire x1="15.24" y1="3.81" x2="41.91" y2="67.31" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="VIN">
 <contactref element="D7" pad="A"/>
 <contactref element="T3" pad="C"/>
 <contactref element="POWER" pad="1"/>
-<wire x1="10.16" y1="3.81" x2="64.77" y2="22.86" width="0" layer="19" extent="1-1"/>
-<wire x1="3.81" y1="11.43" x2="10.16" y2="3.81" width="0" layer="19" extent="1-1"/>
+<wire x1="3.81" y1="11.43" x2="27.94" y2="31.75" width="0" layer="19" extent="1-1"/>
+<wire x1="10.16" y1="3.81" x2="3.81" y2="11.43" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="GND">
 <contactref element="STEP_DOWN" pad="IN-"/>
@@ -1871,26 +1870,26 @@ design rules under a new name.</description>
 <contactref element="POWER" pad="2"/>
 <contactref element="ARDUINO_PRO-MINI" pad="J6.2"/>
 <contactref element="STEP_DOWN" pad="OUT-"/>
-<wire x1="68.58" y1="57.15" x2="92.71" y2="54.61" width="0" layer="19" extent="1-1"/>
-<wire x1="78.74" y1="38.1" x2="92.71" y2="54.61" width="0" layer="19" extent="1-1"/>
-<wire x1="88.9" y1="13.97" x2="78.74" y2="38.1" width="0" layer="19" extent="1-1"/>
-<wire x1="44.45" y1="55.88" x2="68.58" y2="57.15" width="0" layer="19" extent="1-1"/>
-<wire x1="77.47" y1="72.39" x2="44.45" y2="55.88" width="0" layer="19" extent="1-1"/>
-<wire x1="90.17" y1="69.85" x2="77.47" y2="72.39" width="0" layer="19" extent="1-1"/>
-<wire x1="21.336" y1="66.802" x2="77.47" y2="72.39" width="0" layer="19" extent="1-1"/>
-<wire x1="21.336" y1="27.178" x2="90.17" y2="69.85" width="0" layer="19" extent="1-1"/>
+<wire x1="21.336" y1="66.802" x2="41.91" y2="72.39" width="0" layer="19" extent="1-1"/>
+<wire x1="30.48" y1="38.1" x2="21.336" y2="66.802" width="0" layer="19" extent="1-1"/>
+<wire x1="39.37" y1="38.1" x2="30.48" y2="38.1" width="0" layer="19" extent="1-1"/>
+<wire x1="41.91" y1="31.75" x2="39.37" y2="38.1" width="0" layer="19" extent="1-1"/>
+<wire x1="41.91" y1="24.13" x2="41.91" y2="31.75" width="0" layer="19" extent="1-1"/>
+<wire x1="49.53" y1="34.29" x2="41.91" y2="31.75" width="0" layer="19" extent="1-1"/>
+<wire x1="30.48" y1="24.13" x2="41.91" y2="24.13" width="0" layer="19" extent="1-1"/>
+<wire x1="21.336" y1="27.178" x2="30.48" y2="24.13" width="0" layer="19" extent="1-1"/>
 <wire x1="19.05" y1="19.05" x2="21.336" y2="27.178" width="0" layer="19" extent="1-1"/>
 <wire x1="12.7" y1="3.81" x2="19.05" y2="19.05" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$20">
 <contactref element="T4" pad="B"/>
 <contactref element="R11" pad="1"/>
-<wire x1="72.39" y1="72.39" x2="33.02" y2="52.07" width="0" layer="19" extent="1-1"/>
+<wire x1="25.4" y1="24.13" x2="38.1" y2="19.05" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$22">
 <contactref element="R8" pad="1"/>
 <contactref element="T7" pad="B"/>
-<wire x1="26.67" y1="19.05" x2="73.66" y2="38.1" width="0" layer="19" extent="1-1"/>
+<wire x1="26.67" y1="19.05" x2="34.29" y2="38.1" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$23">
 <contactref element="D7" pad="C"/>
@@ -1900,44 +1899,44 @@ design rules under a new name.</description>
 <signal name="DSPEAKER_OUT">
 <contactref element="ARDUINO_PRO-MINI" pad="J6.11"/>
 <contactref element="R2" pad="1"/>
-<wire x1="11.43" y1="11.43" x2="68.58" y2="34.29" width="0" layer="19" extent="1-1"/>
+<wire x1="11.43" y1="11.43" x2="41.91" y2="49.53" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DCC_OUT">
 <contactref element="ARDUINO_PRO-MINI" pad="J6.12"/>
 <contactref element="R1" pad="1"/>
-<wire x1="91.44" y1="25.4" x2="68.58" y2="31.75" width="0" layer="19" extent="1-1"/>
+<wire x1="22.86" y1="11.43" x2="41.91" y2="46.99" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DBUZZER_OUT">
 <contactref element="ARDUINO_PRO-MINI" pad="J6.10"/>
 <contactref element="R4" pad="1"/>
-<wire x1="7.62" y1="19.05" x2="68.58" y2="36.83" width="0" layer="19" extent="1-1"/>
+<wire x1="7.62" y1="19.05" x2="41.91" y2="52.07" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$5">
 <contactref element="T6" pad="B"/>
 <contactref element="R4" pad="2"/>
-<wire x1="7.62" y1="11.43" x2="87.63" y2="54.61" width="0" layer="19" extent="1-1"/>
+<wire x1="7.62" y1="11.43" x2="36.83" y2="24.13" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$2">
 <contactref element="T3" pad="B"/>
 <contactref element="R13" pad="2"/>
-<wire x1="15.24" y1="19.05" x2="62.23" y2="22.86" width="0" layer="19" extent="1-1"/>
+<wire x1="15.24" y1="19.05" x2="25.4" y2="31.75" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="TDIN2_OUTPUT+">
 <contactref element="R16" pad="2"/>
 <contactref element="T3" pad="E"/>
 <contactref element="OUTPUT" pad="5"/>
-<wire x1="49.53" y1="3.81" x2="67.31" y2="22.86" width="0" layer="19" extent="1-1"/>
-<wire x1="19.05" y1="11.43" x2="49.53" y2="3.81" width="0" layer="19" extent="1-1"/>
+<wire x1="19.05" y1="11.43" x2="30.48" y2="31.75" width="0" layer="19" extent="1-1"/>
+<wire x1="49.53" y1="3.81" x2="19.05" y2="11.43" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="VOUT">
 <contactref element="STEP_DOWN" pad="OUT+"/>
 <contactref element="ARDUINO_PRO-MINI" pad="J6.1"/>
-<wire x1="4.064" y1="66.802" x2="68.58" y2="59.69" width="0" layer="19" extent="1-1"/>
+<wire x1="4.064" y1="66.802" x2="41.91" y2="74.93" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DLED_OUTPUT">
 <contactref element="R11" pad="2"/>
 <contactref element="ARDUINO_PRO-MINI" pad="J7.3"/>
-<wire x1="33.02" y1="44.45" x2="53.34" y2="36.83" width="0" layer="19" extent="1-1"/>
+<wire x1="38.1" y1="11.43" x2="26.67" y2="52.07" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="IGNITION_INPUT+">
 <contactref element="R8" pad="2"/>
@@ -1947,52 +1946,52 @@ design rules under a new name.</description>
 <signal name="DDOOR_INPUT-">
 <contactref element="ARDUINO_PRO-MINI" pad="J7.1"/>
 <contactref element="X1" pad="6"/>
-<wire x1="31.75" y1="3.81" x2="53.34" y2="31.75" width="0" layer="19" extent="1-1"/>
+<wire x1="31.75" y1="3.81" x2="26.67" y2="46.99" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$1">
 <contactref element="R12" pad="1"/>
 <contactref element="T5" pad="B"/>
-<wire x1="35.56" y1="54.61" x2="39.37" y2="55.88" width="0" layer="19" extent="1-1"/>
+<wire x1="30.48" y1="19.05" x2="49.53" y2="29.21" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="GENERAL_INPUT+">
 <contactref element="R12" pad="2"/>
 <contactref element="X1" pad="7"/>
-<wire x1="34.29" y1="3.81" x2="35.56" y2="46.99" width="0" layer="19" extent="1-1"/>
+<wire x1="34.29" y1="3.81" x2="30.48" y2="11.43" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DGENERAL_INPUT">
 <contactref element="T5" pad="C"/>
 <contactref element="ARDUINO_PRO-MINI" pad="J7.5"/>
-<wire x1="53.34" y1="41.91" x2="41.91" y2="55.88" width="0" layer="19" extent="1-1"/>
+<wire x1="49.53" y1="31.75" x2="26.67" y2="57.15" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DJAMMINGAUX_INPUT-">
 <contactref element="ARDUINO_PRO-MINI" pad="J7.7"/>
 <contactref element="X1" pad="4"/>
-<wire x1="26.67" y1="3.81" x2="53.34" y2="46.99" width="0" layer="19" extent="1-1"/>
+<wire x1="26.67" y1="3.81" x2="26.67" y2="62.23" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$3">
 <contactref element="T8" pad="B"/>
 <contactref element="R1" pad="2"/>
-<wire x1="91.44" y1="33.02" x2="90.17" y2="64.77" width="0" layer="19" extent="1-1"/>
+<wire x1="22.86" y1="19.05" x2="25.4" y2="38.1" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$4">
 <contactref element="T1" pad="B"/>
 <contactref element="R2" pad="2"/>
-<wire x1="11.43" y1="19.05" x2="83.82" y2="13.97" width="0" layer="19" extent="1-1"/>
+<wire x1="11.43" y1="19.05" x2="36.83" y2="31.75" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="SPEAKER_OUTPUT-">
 <contactref element="T1" pad="C"/>
 <contactref element="OUTPUT" pad="3"/>
-<wire x1="44.45" y1="3.81" x2="86.36" y2="13.97" width="0" layer="19" extent="1-1"/>
+<wire x1="44.45" y1="3.81" x2="39.37" y2="31.75" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DIGNITION_INPUT">
 <contactref element="T7" pad="C"/>
 <contactref element="ARDUINO_PRO-MINI" pad="J7.2"/>
-<wire x1="53.34" y1="34.29" x2="76.2" y2="38.1" width="0" layer="19" extent="1-1"/>
+<wire x1="26.67" y1="49.53" x2="36.83" y2="38.1" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$6">
 <contactref element="T4" pad="C"/>
 <contactref element="R5" pad="1"/>
-<wire x1="34.29" y1="19.05" x2="74.93" y2="72.39" width="0" layer="19" extent="1-1"/>
+<wire x1="34.29" y1="19.05" x2="27.94" y2="24.13" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="LED_OUTPUT-">
 <contactref element="R5" pad="2"/>
@@ -2002,47 +2001,47 @@ design rules under a new name.</description>
 <signal name="N$7">
 <contactref element="ARDUINO_PRO-MINI" pad="J7.12"/>
 <contactref element="UART" pad="3"/>
-<wire x1="19.05" y1="74.93" x2="53.34" y2="59.69" width="0" layer="19" extent="1-1"/>
+<wire x1="19.05" y1="74.93" x2="26.67" y2="74.93" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$8">
 <contactref element="ARDUINO_PRO-MINI" pad="J7.11"/>
 <contactref element="UART" pad="2"/>
-<wire x1="16.51" y1="74.93" x2="53.34" y2="57.15" width="0" layer="19" extent="1-1"/>
+<wire x1="16.51" y1="74.93" x2="26.67" y2="72.39" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$9">
 <contactref element="ARDUINO_PRO-MINI" pad="J7.9"/>
 <contactref element="UART" pad="1"/>
-<wire x1="13.97" y1="74.93" x2="53.34" y2="52.07" width="0" layer="19" extent="1-1"/>
+<wire x1="13.97" y1="74.93" x2="26.67" y2="67.31" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DTDOUT2_INPUT-">
 <contactref element="ARDUINO_PRO-MINI" pad="J7.8"/>
 <contactref element="X1" pad="1"/>
-<wire x1="19.05" y1="3.81" x2="53.34" y2="49.53" width="0" layer="19" extent="1-1"/>
+<wire x1="19.05" y1="3.81" x2="26.67" y2="64.77" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DENABLEDOOR_INPUT-">
 <contactref element="ARDUINO_PRO-MINI" pad="J7.4"/>
 <contactref element="X1" pad="5"/>
-<wire x1="29.21" y1="3.81" x2="53.34" y2="39.37" width="0" layer="19" extent="1-1"/>
+<wire x1="29.21" y1="3.81" x2="26.67" y2="54.61" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="CC_OUTPUT-">
 <contactref element="OUTPUT" pad="1"/>
 <contactref element="T8" pad="C"/>
-<wire x1="39.37" y1="3.81" x2="90.17" y2="67.31" width="0" layer="19" extent="1-1"/>
+<wire x1="39.37" y1="3.81" x2="27.94" y2="38.1" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="BUZZER_OUTPUT-">
 <contactref element="OUTPUT" pad="2"/>
 <contactref element="T6" pad="C"/>
-<wire x1="41.91" y1="3.81" x2="90.17" y2="54.61" width="0" layer="19" extent="1-1"/>
+<wire x1="41.91" y1="3.81" x2="39.37" y2="24.13" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DTDIN2_OUT-">
 <contactref element="ARDUINO_PRO-MINI" pad="J6.9"/>
 <contactref element="R13" pad="1"/>
-<wire x1="15.24" y1="11.43" x2="68.58" y2="39.37" width="0" layer="19" extent="1-1"/>
+<wire x1="15.24" y1="11.43" x2="41.91" y2="54.61" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="DTDOUT1_INPUT-">
 <contactref element="ARDUINO_PRO-MINI" pad="J7.6"/>
 <contactref element="X1" pad="3"/>
-<wire x1="24.13" y1="3.81" x2="53.34" y2="44.45" width="0" layer="19" extent="1-1"/>
+<wire x1="24.13" y1="3.81" x2="26.67" y2="59.69" width="0" layer="19" extent="1-1"/>
 </signal>
 </signals>
 </board>

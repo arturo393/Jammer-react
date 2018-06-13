@@ -597,31 +597,34 @@ In this library the device names are the same as the pin names of the symbols, t
 <description>&lt;b&gt;Transistors&lt;/b&gt;&lt;p&gt;
 &lt;author&gt;Created by librarian@cadsoft.de&lt;/author&gt;</description>
 <packages>
-<package name="TO92-ECB" urn="urn:adsk.eagle:footprint:29865/1" library_version="2">
-<description>&lt;b&gt;TO-92&lt;/b&gt; Pads In Line E C B from top&lt;p&gt;</description>
-<wire x1="-2.095" y1="-1.651" x2="2.095" y2="-1.651" width="0.127" layer="21"/>
-<wire x1="-2.413" y1="1.1359" x2="2.413" y2="1.1359" width="0.127" layer="21" curve="-129.583"/>
-<wire x1="1.136" y1="-0.127" x2="-1.136" y2="-0.127" width="0.127" layer="51"/>
-<wire x1="-2.413" y1="1.1359" x2="-2.664" y2="-0.127" width="0.127" layer="51" curve="27.9407"/>
-<wire x1="-2.664" y1="-0.127" x2="-2.413" y2="-1.1359" width="0.127" layer="51" curve="22.4788"/>
-<wire x1="-1.404" y1="-0.127" x2="-2.664" y2="-0.127" width="0.127" layer="51"/>
-<wire x1="-2.4135" y1="-1.1359" x2="-2.095" y2="-1.651" width="0.127" layer="21" curve="13.0385"/>
-<wire x1="-1.136" y1="-0.127" x2="-1.404" y2="-0.127" width="0.127" layer="21"/>
-<wire x1="2.413" y1="-1.1359" x2="2.664" y2="-0.127" width="0.127" layer="51" curve="22.4788"/>
-<wire x1="2.664" y1="-0.127" x2="2.413" y2="1.1359" width="0.127" layer="51" curve="27.9333"/>
-<wire x1="2.664" y1="-0.127" x2="1.404" y2="-0.127" width="0.127" layer="51"/>
-<wire x1="1.404" y1="-0.127" x2="1.136" y2="-0.127" width="0.127" layer="21"/>
-<wire x1="2.095" y1="-1.651" x2="2.4247" y2="-1.1118" width="0.127" layer="21" curve="13.6094"/>
-<pad name="C" x="0" y="0" drill="0.8128" shape="long" rot="R90"/>
-<pad name="E" x="-2.54" y="0" drill="0.8128" shape="long" rot="R90"/>
-<pad name="B" x="2.54" y="0" drill="0.8128" shape="long" rot="R90"/>
-<text x="-2.54" y="3.048" size="1.27" layer="25" ratio="10">&gt;NAME</text>
-<text x="-2.54" y="-3.302" size="1.27" layer="27" ratio="10">&gt;VALUE</text>
+<package name="TO92" urn="urn:adsk.eagle:footprint:29825/1" library_version="2">
+<description>&lt;b&gt;TO 92&lt;/b&gt;</description>
+<wire x1="-2.0946" y1="-1.651" x2="-2.6549" y2="-0.254" width="0.127" layer="21" curve="-32.781"/>
+<wire x1="-2.6549" y1="-0.254" x2="-0.7863" y2="2.5485" width="0.127" layer="21" curve="-78.3185"/>
+<wire x1="0.7863" y1="2.5484" x2="2.0945" y2="-1.651" width="0.127" layer="21" curve="-111.1"/>
+<wire x1="-2.0945" y1="-1.651" x2="2.0945" y2="-1.651" width="0.127" layer="21"/>
+<wire x1="-2.2537" y1="-0.254" x2="-0.2863" y2="-0.254" width="0.127" layer="51"/>
+<wire x1="-2.6549" y1="-0.254" x2="-2.2537" y2="-0.254" width="0.127" layer="21"/>
+<wire x1="-0.2863" y1="-0.254" x2="0.2863" y2="-0.254" width="0.127" layer="21"/>
+<wire x1="2.2537" y1="-0.254" x2="2.6549" y2="-0.254" width="0.127" layer="21"/>
+<wire x1="0.2863" y1="-0.254" x2="2.2537" y2="-0.254" width="0.127" layer="51"/>
+<wire x1="-0.7863" y1="2.5485" x2="0.7863" y2="2.5485" width="0.127" layer="51" curve="-34.2936"/>
+<pad name="1" x="1.27" y="0" drill="0.8128" shape="octagon"/>
+<pad name="2" x="0" y="1.905" drill="0.8128" shape="octagon"/>
+<pad name="3" x="-1.27" y="0" drill="0.8128" shape="octagon"/>
+<text x="3.175" y="0.635" size="1.27" layer="25" ratio="10">&gt;NAME</text>
+<text x="3.175" y="-1.27" size="1.27" layer="27" ratio="10">&gt;VALUE</text>
+<text x="-0.635" y="0.635" size="1.27" layer="51" ratio="10">2</text>
+<text x="-2.159" y="0" size="1.27" layer="51" ratio="10">3</text>
+<text x="1.143" y="0" size="1.27" layer="51" ratio="10">1</text>
 </package>
 </packages>
 <packages3d>
-<package3d name="TO92-ECB" urn="urn:adsk.eagle:package:29929/2" type="model" library_version="2">
-<description>TO-92 Pads In Line E C B from top</description>
+<package3d name="TO92" urn="urn:adsk.eagle:package:29893/2" type="model" library_version="2">
+<description>TO 92</description>
+<packageinstances>
+<packageinstance name="TO92"/>
+</packageinstances>
 </package3d>
 </packages3d>
 <symbols>
@@ -645,21 +648,20 @@ In this library the device names are the same as the pin names of the symbols, t
 </symbol>
 </symbols>
 <devicesets>
-<deviceset name="2SC1815" urn="urn:adsk.eagle:component:30066/2" prefix="T" library_version="2">
-<description>&lt;b&gt;NPN EPITAXIAL TRANSISTOR&lt;/b&gt;&lt;p&gt;
-Source: TOSHIBA .. 2SC1815   1.pdf</description>
+<deviceset name="2N3904" urn="urn:adsk.eagle:component:29952/2" prefix="T" library_version="2">
+<description>&lt;b&gt;NPN TRANSISTOR&lt;/b&gt;</description>
 <gates>
-<gate name="G$1" symbol="NPN" x="0" y="0"/>
+<gate name="G1" symbol="NPN" x="0" y="0"/>
 </gates>
 <devices>
-<device name="" package="TO92-ECB">
+<device name="" package="TO92">
 <connects>
-<connect gate="G$1" pin="B" pad="B"/>
-<connect gate="G$1" pin="C" pad="C"/>
-<connect gate="G$1" pin="E" pad="E"/>
+<connect gate="G1" pin="B" pad="2"/>
+<connect gate="G1" pin="C" pad="1"/>
+<connect gate="G1" pin="E" pad="3"/>
 </connects>
 <package3dinstances>
-<package3dinstance package3d_urn="urn:adsk.eagle:package:29929/2"/>
+<package3dinstance package3d_urn="urn:adsk.eagle:package:29893/2"/>
 </package3dinstances>
 <technologies>
 <technology name=""/>
@@ -4981,29 +4983,29 @@ general purpose rectifier, 1 A</description>
 <part name="FRAME1" library="frames" deviceset="LETTER_L" device=""/>
 <part name="SUPPLY1" library="supply2" deviceset="GND" device=""/>
 <part name="ARDUINO_PRO-MINI" library="diy-modules" deviceset="ARDUINO-PRO-MINI-*#SMP" device="" technology="5.0V"/>
-<part name="T3" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2SC1815" device="" package3d_urn="urn:adsk.eagle:package:29929/2"/>
-<part name="T4" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2SC1815" device="" package3d_urn="urn:adsk.eagle:package:29929/2"/>
+<part name="T3" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:29893/2"/>
+<part name="T4" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:29893/2"/>
 <part name="R11" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="47k"/>
 <part name="R13" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330"/>
 <part name="R16" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="3k3"/>
 <part name="SUPPLY5" library="supply2" deviceset="GND" device=""/>
 <part name="R4" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330"/>
-<part name="T6" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2SC1815" device="" package3d_urn="urn:adsk.eagle:package:29929/2"/>
+<part name="T6" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:29893/2"/>
 <part name="SUPPLY2" library="supply2" deviceset="GND" device=""/>
 <part name="R5" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330"/>
 <part name="SUPPLY7" library="supply2" deviceset="GND" device=""/>
-<part name="T7" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2SC1815" device="" package3d_urn="urn:adsk.eagle:package:29929/2"/>
+<part name="T7" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:29893/2"/>
 <part name="SUPPLY6" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="R8" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="3k3"/>
 <part name="D7" library="diode" library_urn="urn:adsk.eagle:library:210" deviceset="1N4004" device="" package3d_urn="urn:adsk.eagle:package:43336/1"/>
-<part name="T5" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2SC1815" device="" package3d_urn="urn:adsk.eagle:package:29929/2"/>
+<part name="T5" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:29893/2"/>
 <part name="SUPPLY8" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="R12" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="3k3"/>
 <part name="R1" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330"/>
-<part name="T8" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2SC1815" device="" package3d_urn="urn:adsk.eagle:package:29929/2"/>
+<part name="T8" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:29893/2"/>
 <part name="SUPPLY9" library="supply2" deviceset="GND" device=""/>
 <part name="R2" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/7" package3d_urn="urn:adsk.eagle:package:25945/1" value="330"/>
-<part name="T1" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2SC1815" device="" package3d_urn="urn:adsk.eagle:package:29929/2"/>
+<part name="T1" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:29893/2"/>
 <part name="SUPPLY3" library="supply2" deviceset="GND" device=""/>
 <part name="POWER" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2031" device=""/>
 <part name="UART" library="con-molex" library_urn="urn:adsk.eagle:library:165" deviceset="22-23-2031" device=""/>
@@ -5020,49 +5022,49 @@ general purpose rectifier, 1 A</description>
 <instance part="FRAME1" gate="G$1" x="-104.14" y="-40.64"/>
 <instance part="FRAME1" gate="G$2" x="43.18" y="-40.64"/>
 <instance part="SUPPLY1" gate="GND" x="-88.899" y="114.315"/>
-<instance part="ARDUINO_PRO-MINI" gate="G$1" x="5.096" y="115.697"/>
-<instance part="T3" gate="G$1" x="76.58" y="124.86"/>
-<instance part="T4" gate="G$1" x="113.12229375" y="47.181934375"/>
+<instance part="ARDUINO_PRO-MINI" gate="G$1" x="7.636" y="85.217"/>
+<instance part="T3" gate="G1" x="76.58" y="124.86"/>
+<instance part="T4" gate="G1" x="113.12229375" y="47.181934375"/>
 <instance part="R11" gate="G$1" x="104.21159375" y="46.992075" rot="MR0"/>
 <instance part="R13" gate="G$1" x="68.4" y="124.7"/>
 <instance part="R16" gate="G$1" x="79.2" y="113.96" rot="R90"/>
 <instance part="SUPPLY5" gate="GND" x="79.139" y="105.521"/>
 <instance part="R4" gate="G$1" x="69.08" y="89.08"/>
-<instance part="T6" gate="G$1" x="77.08" y="89.08" smashed="yes">
+<instance part="T6" gate="G1" x="77.08" y="89.08" smashed="yes">
 <attribute name="VALUE" x="66.92" y="94.16" size="1.778" layer="96"/>
 </instance>
 <instance part="SUPPLY2" gate="GND" x="81.08" y="81.08"/>
 <instance part="R5" gate="G$1" x="123.0119125" y="52.54066875" rot="MR180"/>
 <instance part="SUPPLY7" gate="GND" x="116.839" y="38.115" rot="MR0"/>
-<instance part="T7" gate="G$1" x="-57.3" y="45.5" smashed="yes">
+<instance part="T7" gate="G1" x="-57.3" y="45.5" smashed="yes">
 <attribute name="NAME" x="-52.46" y="43.12" size="1.778" layer="95"/>
 <attribute name="VALUE" x="-54.46" y="45.58" size="1.778" layer="96"/>
 </instance>
 <instance part="SUPPLY6" gate="GND" x="-54.3" y="37.5"/>
 <instance part="R8" gate="G$1" x="-65.2919125" y="45.36066875" rot="R180"/>
 <instance part="D7" gate="1" x="-88.46" y="126.84" rot="MR180"/>
-<instance part="T5" gate="G$1" x="-57.3" y="75.98" smashed="yes">
+<instance part="T5" gate="G1" x="-57.3" y="75.98" smashed="yes">
 <attribute name="NAME" x="-52.46" y="73.6" size="1.778" layer="95"/>
 <attribute name="VALUE" x="-54.46" y="76.06" size="1.778" layer="96"/>
 </instance>
 <instance part="SUPPLY8" gate="GND" x="-54.3" y="67.98"/>
 <instance part="R12" gate="G$1" x="-65.2919125" y="75.84066875" rot="R180"/>
 <instance part="R1" gate="G$1" x="114.8" y="122.1"/>
-<instance part="T8" gate="G$1" x="122.8" y="122.1" smashed="yes">
+<instance part="T8" gate="G1" x="122.8" y="122.1" smashed="yes">
 <attribute name="VALUE" x="112.64" y="127.18" size="1.778" layer="96"/>
 </instance>
 <instance part="SUPPLY9" gate="GND" x="126.8" y="114.1"/>
 <instance part="R2" gate="G$1" x="114.8" y="86.54"/>
-<instance part="T1" gate="G$1" x="122.8" y="86.54" smashed="yes">
+<instance part="T1" gate="G1" x="122.8" y="86.54" smashed="yes">
 <attribute name="VALUE" x="112.64" y="91.62" size="1.778" layer="96"/>
 </instance>
 <instance part="SUPPLY3" gate="GND" x="126.8" y="76"/>
 <instance part="POWER" gate="-1" x="38.1" y="38.1"/>
 <instance part="POWER" gate="-2" x="38.1" y="35.56"/>
 <instance part="POWER" gate="-3" x="38.1" y="33.02"/>
-<instance part="UART" gate="-1" x="-20.32" y="134.62" rot="R90"/>
-<instance part="UART" gate="-2" x="-17.78" y="134.62" rot="R90"/>
-<instance part="UART" gate="-3" x="-15.24" y="134.62" rot="R90"/>
+<instance part="UART" gate="-1" x="-17.78" y="104.14" rot="R90"/>
+<instance part="UART" gate="-2" x="-15.24" y="104.14" rot="R90"/>
+<instance part="UART" gate="-3" x="-12.7" y="104.14" rot="R90"/>
 <instance part="SUPPLY4" gate="GND" x="-45.719" y="111.775"/>
 <instance part="OUTPUT" gate="-1" x="63.5" y="17.78"/>
 <instance part="OUTPUT" gate="-2" x="63.5" y="15.24"/>
@@ -5087,7 +5089,7 @@ general purpose rectifier, 1 A</description>
 <label x="-94.46" y="126.84" size="1.778" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
-<pinref part="T3" gate="G$1" pin="C"/>
+<pinref part="T3" gate="G1" pin="C"/>
 <wire x1="79.12" y1="129.94" x2="79.12" y2="130.38" width="0.1524" layer="91"/>
 <wire x1="79.12" y1="130.38" x2="80.46" y2="130.38" width="0.1524" layer="91"/>
 <label x="80.46" y="130.38" size="1.016" layer="95" xref="yes"/>
@@ -5105,20 +5107,20 @@ general purpose rectifier, 1 A</description>
 <wire x1="-88.899" y1="116.855" x2="-83.057" y2="116.855" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="T4" gate="G$1" pin="E"/>
+<pinref part="T4" gate="G1" pin="E"/>
 <pinref part="SUPPLY7" gate="GND" pin="GND"/>
 <wire x1="115.66229375" y1="42.101934375" x2="115.66229375" y2="40.655" width="0.1524" layer="91"/>
 <wire x1="115.66229375" y1="40.655" x2="116.839" y2="40.655" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="SUPPLY6" gate="GND" pin="GND"/>
-<pinref part="T7" gate="G$1" pin="E"/>
+<pinref part="T7" gate="G1" pin="E"/>
 <wire x1="-54.3" y1="40.04" x2="-54.76" y2="40.04" width="0.1524" layer="91"/>
 <wire x1="-54.76" y1="40.04" x2="-54.76" y2="40.42" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="SUPPLY2" gate="GND" pin="GND"/>
-<pinref part="T6" gate="G$1" pin="E"/>
+<pinref part="T6" gate="G1" pin="E"/>
 <wire x1="81.08" y1="83.62" x2="81.08" y2="84" width="0.1524" layer="91"/>
 <wire x1="81.08" y1="84" x2="79.62" y2="84" width="0.1524" layer="91"/>
 </segment>
@@ -5130,18 +5132,18 @@ general purpose rectifier, 1 A</description>
 </segment>
 <segment>
 <pinref part="SUPPLY8" gate="GND" pin="GND"/>
-<pinref part="T5" gate="G$1" pin="E"/>
+<pinref part="T5" gate="G1" pin="E"/>
 <wire x1="-54.3" y1="70.52" x2="-54.76" y2="70.52" width="0.1524" layer="91"/>
 <wire x1="-54.76" y1="70.52" x2="-54.76" y2="70.9" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="SUPPLY9" gate="GND" pin="GND"/>
-<pinref part="T8" gate="G$1" pin="E"/>
+<pinref part="T8" gate="G1" pin="E"/>
 <wire x1="126.8" y1="116.64" x2="126.8" y2="117.02" width="0.1524" layer="91"/>
 <wire x1="126.8" y1="117.02" x2="125.34" y2="117.02" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="T1" gate="G$1" pin="E"/>
+<pinref part="T1" gate="G1" pin="E"/>
 <wire x1="125.34" y1="81.46" x2="127" y2="81.46" width="0.1524" layer="91"/>
 <pinref part="SUPPLY3" gate="GND" pin="GND"/>
 <wire x1="126.8" y1="78.54" x2="127" y2="78.54" width="0.1524" layer="91"/>
@@ -5154,9 +5156,26 @@ general purpose rectifier, 1 A</description>
 </segment>
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="GND.2"/>
-<wire x1="22.876" y1="125.857" x2="24" y2="125.857" width="0.1524" layer="91"/>
-<wire x1="24" y1="125.857" x2="24" y2="126" width="0.1524" layer="91"/>
-<label x="24" y="126" size="1.016" layer="95" xref="yes"/>
+<wire x1="25.416" y1="95.377" x2="26.54" y2="95.377" width="0.1524" layer="91"/>
+<wire x1="26.54" y1="95.377" x2="26.54" y2="95.52" width="0.1524" layer="91"/>
+<label x="26.54" y="95.52" size="1.016" layer="95" xref="yes"/>
+<pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="GND.1"/>
+<pinref part="UART" gate="-1" pin="S"/>
+<wire x1="-10.144" y1="90.297" x2="-17.78" y2="90.297" width="0.1524" layer="91"/>
+<wire x1="-17.78" y1="90.297" x2="-17.78" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="-17.78" y1="93.98" x2="-17.78" y2="101.6" width="0.1524" layer="91"/>
+<wire x1="-45.72" y1="116.84" x2="-33.02" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="-33.02" y1="86.36" x2="-33.02" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="-33.02" y1="93.98" x2="-27.94" y2="93.98" width="0.1524" layer="91"/>
+<junction x="-17.78" y="93.98"/>
+<wire x1="-27.94" y1="93.98" x2="-17.78" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="-27.94" y1="93.98" x2="-27.94" y2="111.76" width="0.1524" layer="91"/>
+<junction x="-27.94" y="93.98"/>
+<wire x1="-27.94" y1="111.76" x2="35.56" y2="111.76" width="0.1524" layer="91"/>
+<wire x1="35.56" y1="111.76" x2="35.56" y2="95.377" width="0.1524" layer="91"/>
+<wire x1="35.56" y1="93.98" x2="35.56" y2="95.377" width="0.1524" layer="91"/>
+<wire x1="35.56" y1="95.377" x2="25.416" y2="95.377" width="0.1524" layer="91"/>
+<junction x="25.416" y="95.377"/>
 </segment>
 <segment>
 <pinref part="STEP_DOWN" gate="G$1" pin="OUT-"/>
@@ -5167,7 +5186,7 @@ general purpose rectifier, 1 A</description>
 </net>
 <net name="N$20" class="0">
 <segment>
-<pinref part="T4" gate="G$1" pin="B"/>
+<pinref part="T4" gate="G1" pin="B"/>
 <pinref part="R11" gate="G$1" pin="1"/>
 <wire x1="110.58229375" y1="47.181934375" x2="109.29159375" y2="47.181934375" width="0.1524" layer="91"/>
 <wire x1="109.29159375" y1="47.181934375" x2="109.29159375" y2="46.992075" width="0.1524" layer="91"/>
@@ -5176,7 +5195,7 @@ general purpose rectifier, 1 A</description>
 <net name="N$22" class="0">
 <segment>
 <pinref part="R8" gate="G$1" pin="1"/>
-<pinref part="T7" gate="G$1" pin="B"/>
+<pinref part="T7" gate="G1" pin="B"/>
 <wire x1="-60.2119125" y1="45.36066875" x2="-60.2119125" y2="45.5" width="0.1524" layer="91"/>
 <wire x1="-60.2119125" y1="45.5" x2="-59.84" y2="45.5" width="0.1524" layer="91"/>
 </segment>
@@ -5192,10 +5211,10 @@ general purpose rectifier, 1 A</description>
 <net name="DSPEAKER_OUT" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D11"/>
-<wire x1="22.876" y1="102.997" x2="22.876" y2="104.14" width="0.1524" layer="91"/>
-<wire x1="22.876" y1="104.14" x2="25.4" y2="104.14" width="0.1524" layer="91"/>
-<label x="25.4" y="104.14" size="1.016" layer="95" xref="yes"/>
-<label x="25.4" y="104.14" size="1.016" layer="95" xref="yes"/>
+<wire x1="25.416" y1="72.517" x2="25.416" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="25.416" y1="73.66" x2="27.94" y2="73.66" width="0.1524" layer="91"/>
+<label x="27.94" y="73.66" size="1.016" layer="95" xref="yes"/>
+<label x="27.94" y="73.66" size="1.016" layer="95" xref="yes"/>
 </segment>
 <segment>
 <pinref part="R2" gate="G$1" pin="1"/>
@@ -5206,9 +5225,9 @@ general purpose rectifier, 1 A</description>
 <net name="DCC_OUT" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D10"/>
-<wire x1="22.876" y1="100.457" x2="22.876" y2="101.6" width="0.1524" layer="91"/>
-<wire x1="22.876" y1="101.6" x2="25.4" y2="101.6" width="0.1524" layer="91"/>
-<label x="25.4" y="101.6" size="1.016" layer="95" xref="yes"/>
+<wire x1="25.416" y1="69.977" x2="25.416" y2="71.12" width="0.1524" layer="91"/>
+<wire x1="25.416" y1="71.12" x2="27.94" y2="71.12" width="0.1524" layer="91"/>
+<label x="27.94" y="71.12" size="1.016" layer="95" xref="yes"/>
 </segment>
 <segment>
 <pinref part="R1" gate="G$1" pin="1"/>
@@ -5219,9 +5238,9 @@ general purpose rectifier, 1 A</description>
 <net name="DBUZZER_OUT" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D12"/>
-<wire x1="22.876" y1="105.537" x2="22.876" y2="106.68" width="0.1524" layer="91"/>
-<wire x1="22.876" y1="106.68" x2="25.4" y2="106.68" width="0.1524" layer="91"/>
-<label x="25.4" y="106.68" size="1.016" layer="95" xref="yes"/>
+<wire x1="25.416" y1="75.057" x2="25.416" y2="76.2" width="0.1524" layer="91"/>
+<wire x1="25.416" y1="76.2" x2="27.94" y2="76.2" width="0.1524" layer="91"/>
+<label x="27.94" y="76.2" size="1.016" layer="95" xref="yes"/>
 </segment>
 <segment>
 <pinref part="R4" gate="G$1" pin="1"/>
@@ -5231,14 +5250,14 @@ general purpose rectifier, 1 A</description>
 </net>
 <net name="N$5" class="0">
 <segment>
-<pinref part="T6" gate="G$1" pin="B"/>
+<pinref part="T6" gate="G1" pin="B"/>
 <pinref part="R4" gate="G$1" pin="2"/>
 <wire x1="74.54" y1="89.08" x2="74.16" y2="89.08" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$2" class="0">
 <segment>
-<pinref part="T3" gate="G$1" pin="B"/>
+<pinref part="T3" gate="G1" pin="B"/>
 <pinref part="R13" gate="G$1" pin="2"/>
 <wire x1="74.04" y1="124.86" x2="73.48" y2="124.86" width="0.1524" layer="91"/>
 <wire x1="73.48" y1="124.86" x2="73.48" y2="124.7" width="0.1524" layer="91"/>
@@ -5247,7 +5266,7 @@ general purpose rectifier, 1 A</description>
 <net name="TDIN2_OUTPUT+" class="0">
 <segment>
 <pinref part="R16" gate="G$1" pin="2"/>
-<pinref part="T3" gate="G$1" pin="E"/>
+<pinref part="T3" gate="G1" pin="E"/>
 <wire x1="79.2" y1="119.04" x2="79.2" y2="119.78" width="0.1524" layer="91"/>
 <wire x1="79.2" y1="119.78" x2="79.12" y2="119.78" width="0.1524" layer="91"/>
 <wire x1="79.12" y1="119.78" x2="81.46" y2="119.78" width="0.1524" layer="91"/>
@@ -5270,10 +5289,15 @@ general purpose rectifier, 1 A</description>
 </segment>
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="RAW"/>
-<wire x1="22.876" y1="128.397" x2="23" y2="128.397" width="0.1524" layer="91"/>
-<wire x1="23" y1="128.397" x2="23" y2="129" width="0.1524" layer="91"/>
-<wire x1="23" y1="129" x2="24" y2="129" width="0.1524" layer="91"/>
-<label x="24" y="129" size="1.016" layer="95" xref="yes"/>
+<wire x1="25.416" y1="97.917" x2="25.54" y2="97.917" width="0.1524" layer="91"/>
+<wire x1="25.54" y1="97.917" x2="25.54" y2="98.52" width="0.1524" layer="91"/>
+<wire x1="25.54" y1="98.52" x2="26.54" y2="98.52" width="0.1524" layer="91"/>
+<label x="26.54" y="98.52" size="1.016" layer="95" xref="yes"/>
+</segment>
+<segment>
+<pinref part="POWER" gate="-3" pin="S"/>
+<junction x="35.56" y="33.02"/>
+<label x="35.56" y="33.02" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="DLED_OUTPUT" class="0">
@@ -5285,9 +5309,9 @@ general purpose rectifier, 1 A</description>
 </segment>
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D7"/>
-<wire x1="-12.684" y1="105.537" x2="-12.7" y2="105.537" width="0.1524" layer="91"/>
-<wire x1="-12.7" y1="105.537" x2="-12.7" y2="104.14" width="0.1524" layer="91"/>
-<label x="-12.7" y="104.14" size="1.016" layer="95" rot="R180" xref="yes"/>
+<wire x1="-10.144" y1="75.057" x2="-10.16" y2="75.057" width="0.1524" layer="91"/>
+<wire x1="-10.16" y1="75.057" x2="-10.16" y2="73.66" width="0.1524" layer="91"/>
+<label x="-10.16" y="73.66" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="IGNITION_INPUT+" class="0">
@@ -5305,9 +5329,9 @@ general purpose rectifier, 1 A</description>
 <net name="DDOOR_INPUT-" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D9"/>
-<wire x1="-12.684" y1="100.457" x2="-12.7" y2="100.457" width="0.1524" layer="91"/>
-<wire x1="-12.7" y1="100.457" x2="-12.7" y2="99.06" width="0.1524" layer="91"/>
-<label x="-12.7" y="99.06" size="1.016" layer="95" rot="R180" xref="yes"/>
+<wire x1="-10.144" y1="69.977" x2="-10.16" y2="69.977" width="0.1524" layer="91"/>
+<wire x1="-10.16" y1="69.977" x2="-10.16" y2="68.58" width="0.1524" layer="91"/>
+<label x="-10.16" y="68.58" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
 <pinref part="X1" gate="-6" pin="S"/>
@@ -5318,7 +5342,7 @@ general purpose rectifier, 1 A</description>
 <net name="N$1" class="0">
 <segment>
 <pinref part="R12" gate="G$1" pin="1"/>
-<pinref part="T5" gate="G$1" pin="B"/>
+<pinref part="T5" gate="G1" pin="B"/>
 <wire x1="-60.2119125" y1="75.84066875" x2="-60.2119125" y2="75.98" width="0.1524" layer="91"/>
 <wire x1="-60.2119125" y1="75.98" x2="-59.84" y2="75.98" width="0.1524" layer="91"/>
 </segment>
@@ -5337,24 +5361,24 @@ general purpose rectifier, 1 A</description>
 </net>
 <net name="DGENERAL_INPUT" class="0">
 <segment>
-<pinref part="T5" gate="G$1" pin="C"/>
+<pinref part="T5" gate="G1" pin="C"/>
 <wire x1="-54.76" y1="81.06" x2="-54.76" y2="81.98" width="0.1524" layer="91"/>
 <wire x1="-54.76" y1="81.98" x2="-55.3" y2="81.98" width="0.1524" layer="91"/>
 <label x="-55.3" y="81.98" size="1.016" layer="95" xref="yes"/>
 </segment>
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D5"/>
-<wire x1="-12.684" y1="110.617" x2="-12.7" y2="110.617" width="0.1524" layer="91"/>
-<wire x1="-12.7" y1="110.617" x2="-12.7" y2="109.22" width="0.1524" layer="91"/>
-<label x="-12.7" y="109.22" size="1.016" layer="95" rot="R180" xref="yes"/>
+<wire x1="-10.144" y1="80.137" x2="-10.16" y2="80.137" width="0.1524" layer="91"/>
+<wire x1="-10.16" y1="80.137" x2="-10.16" y2="78.74" width="0.1524" layer="91"/>
+<label x="-10.16" y="78.74" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="DJAMMINGAUX_INPUT-" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D3"/>
-<wire x1="-12.684" y1="115.697" x2="-15.24" y2="115.697" width="0.1524" layer="91"/>
-<wire x1="-15.24" y1="115.697" x2="-15.24" y2="114.3" width="0.1524" layer="91"/>
-<label x="-15.24" y="114.3" size="1.016" layer="95" rot="R180" xref="yes"/>
+<wire x1="-10.144" y1="85.217" x2="-12.7" y2="85.217" width="0.1524" layer="91"/>
+<wire x1="-12.7" y1="85.217" x2="-12.7" y2="83.82" width="0.1524" layer="91"/>
+<label x="-12.7" y="83.82" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
 <pinref part="X1" gate="-4" pin="S"/>
@@ -5364,21 +5388,21 @@ general purpose rectifier, 1 A</description>
 </net>
 <net name="N$3" class="0">
 <segment>
-<pinref part="T8" gate="G$1" pin="B"/>
+<pinref part="T8" gate="G1" pin="B"/>
 <pinref part="R1" gate="G$1" pin="2"/>
 <wire x1="120.26" y1="122.1" x2="119.88" y2="122.1" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$4" class="0">
 <segment>
-<pinref part="T1" gate="G$1" pin="B"/>
+<pinref part="T1" gate="G1" pin="B"/>
 <pinref part="R2" gate="G$1" pin="2"/>
 <wire x1="120.26" y1="86.54" x2="119.88" y2="86.54" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="SPEAKER_OUTPUT-" class="0">
 <segment>
-<pinref part="T1" gate="G$1" pin="C"/>
+<pinref part="T1" gate="G1" pin="C"/>
 <wire x1="125.34" y1="91.62" x2="125.34" y2="92.54" width="0.1524" layer="91"/>
 <wire x1="125.34" y1="92.54" x2="125.8" y2="92.54" width="0.1524" layer="91"/>
 <label x="127" y="91.44" size="1.016" layer="95" xref="yes"/>
@@ -5391,27 +5415,20 @@ general purpose rectifier, 1 A</description>
 </net>
 <net name="DIGNITION_INPUT" class="0">
 <segment>
-<pinref part="T7" gate="G$1" pin="C"/>
+<pinref part="T7" gate="G1" pin="C"/>
 <wire x1="-54.76" y1="50.58" x2="-54.76" y2="51.5" width="0.1524" layer="91"/>
 <label x="-55.3" y="51.5" size="1.016" layer="95" xref="yes"/>
 </segment>
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D8"/>
-<wire x1="-12.684" y1="102.997" x2="-12.7" y2="102.997" width="0.1524" layer="91"/>
-<wire x1="-12.7" y1="102.997" x2="-12.7" y2="101.6" width="0.1524" layer="91"/>
-<label x="-12.7" y="101.6" size="1.016" layer="95" rot="R180" xref="yes"/>
-</segment>
-</net>
-<net name="VCC" class="0">
-<segment>
-<pinref part="POWER" gate="-3" pin="S"/>
-<junction x="35.56" y="33.02"/>
-<label x="35.56" y="33.02" size="1.016" layer="95" rot="R180" xref="yes"/>
+<wire x1="-10.144" y1="72.517" x2="-10.16" y2="72.517" width="0.1524" layer="91"/>
+<wire x1="-10.16" y1="72.517" x2="-10.16" y2="71.12" width="0.1524" layer="91"/>
+<label x="-10.16" y="71.12" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="N$6" class="0">
 <segment>
-<pinref part="T4" gate="G$1" pin="C"/>
+<pinref part="T4" gate="G1" pin="C"/>
 <pinref part="R5" gate="G$1" pin="1"/>
 <wire x1="115.66229375" y1="52.261934375" x2="117.9319125" y2="52.261934375" width="0.1524" layer="91"/>
 <wire x1="117.9319125" y1="52.261934375" x2="117.9319125" y2="52.54066875" width="0.1524" layer="91"/>
@@ -5434,32 +5451,24 @@ general purpose rectifier, 1 A</description>
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D1/TX"/>
 <pinref part="UART" gate="-3" pin="S"/>
-<wire x1="-12.684" y1="128.397" x2="-15.24" y2="128.397" width="0.1524" layer="91"/>
-<wire x1="-15.24" y1="128.397" x2="-15.24" y2="132.08" width="0.1524" layer="91"/>
+<wire x1="-10.144" y1="97.917" x2="-12.7" y2="97.917" width="0.1524" layer="91"/>
+<wire x1="-12.7" y1="97.917" x2="-12.7" y2="101.6" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$8" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D0/RX"/>
 <pinref part="UART" gate="-2" pin="S"/>
-<wire x1="-12.684" y1="125.857" x2="-17.78" y2="125.857" width="0.1524" layer="91"/>
-<wire x1="-17.78" y1="125.857" x2="-17.78" y2="132.08" width="0.1524" layer="91"/>
-</segment>
-</net>
-<net name="N$9" class="0">
-<segment>
-<pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="GND.1"/>
-<pinref part="UART" gate="-1" pin="S"/>
-<wire x1="-12.684" y1="120.777" x2="-20.32" y2="120.777" width="0.1524" layer="91"/>
-<wire x1="-20.32" y1="120.777" x2="-20.32" y2="132.08" width="0.1524" layer="91"/>
+<wire x1="-10.144" y1="95.377" x2="-15.24" y2="95.377" width="0.1524" layer="91"/>
+<wire x1="-15.24" y1="95.377" x2="-15.24" y2="101.6" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="DTDOUT2_INPUT-" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D2"/>
-<wire x1="-12.684" y1="118.237" x2="-14.03584375" y2="118.237" width="0.1524" layer="91"/>
-<wire x1="-14.03584375" y1="118.237" x2="-16.11584375" y2="118.24333125" width="0.1524" layer="91"/>
-<label x="-15.99556875" y="118.24695" size="1.016" layer="95" rot="R180" xref="yes"/>
+<wire x1="-10.144" y1="87.757" x2="-11.49584375" y2="87.757" width="0.1524" layer="91"/>
+<wire x1="-11.49584375" y1="87.757" x2="-13.57584375" y2="87.76333125" width="0.1524" layer="91"/>
+<label x="-13.45556875" y="87.76695" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
 <pinref part="X1" gate="-1" pin="S"/>
@@ -5470,9 +5479,9 @@ general purpose rectifier, 1 A</description>
 <net name="DENABLEDOOR_INPUT-" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D6"/>
-<wire x1="-12.684" y1="108.077" x2="-12.7" y2="108.077" width="0.1524" layer="91"/>
-<wire x1="-12.7" y1="108.077" x2="-12.7" y2="106.68" width="0.1524" layer="91"/>
-<label x="-12.7" y="106.68" size="1.016" layer="95" rot="R180" xref="yes"/>
+<wire x1="-10.144" y1="77.597" x2="-10.16" y2="77.597" width="0.1524" layer="91"/>
+<wire x1="-10.16" y1="77.597" x2="-10.16" y2="76.2" width="0.1524" layer="91"/>
+<label x="-10.16" y="76.2" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
 <pinref part="X1" gate="-5" pin="S"/>
@@ -5487,7 +5496,7 @@ general purpose rectifier, 1 A</description>
 <label x="60.96" y="17.78" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
-<pinref part="T8" gate="G$1" pin="C"/>
+<pinref part="T8" gate="G1" pin="C"/>
 <wire x1="125.34" y1="127.18" x2="125.34" y2="128.1" width="0.1524" layer="91"/>
 <wire x1="125.34" y1="128.1" x2="125.8" y2="128.1" width="0.1524" layer="91"/>
 <label x="125.8" y="128.1" size="1.016" layer="95" xref="yes"/>
@@ -5500,7 +5509,7 @@ general purpose rectifier, 1 A</description>
 <label x="60.96" y="15.24" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
-<pinref part="T6" gate="G$1" pin="C"/>
+<pinref part="T6" gate="G1" pin="C"/>
 <wire x1="79.62" y1="94.16" x2="79.62" y2="95.08" width="0.1524" layer="91"/>
 <wire x1="79.62" y1="95.08" x2="80.08" y2="95.08" width="0.1524" layer="91"/>
 <label x="80.08" y="95.08" size="1.016" layer="95" xref="yes"/>
@@ -5509,10 +5518,10 @@ general purpose rectifier, 1 A</description>
 <net name="DTDIN2_OUT-" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D13"/>
-<wire x1="22.876" y1="108.077" x2="23" y2="108.077" width="0.1524" layer="91"/>
-<wire x1="23" y1="108.077" x2="23" y2="109" width="0.1524" layer="91"/>
-<wire x1="23" y1="109" x2="25" y2="109" width="0.1524" layer="91"/>
-<label x="25" y="109" size="1.016" layer="95" xref="yes"/>
+<wire x1="25.416" y1="77.597" x2="25.54" y2="77.597" width="0.1524" layer="91"/>
+<wire x1="25.54" y1="77.597" x2="25.54" y2="78.52" width="0.1524" layer="91"/>
+<wire x1="25.54" y1="78.52" x2="27.54" y2="78.52" width="0.1524" layer="91"/>
+<label x="27.54" y="78.52" size="1.016" layer="95" xref="yes"/>
 </segment>
 <segment>
 <pinref part="R13" gate="G$1" pin="1"/>
@@ -5524,9 +5533,9 @@ general purpose rectifier, 1 A</description>
 <net name="DTDOUT1_INPUT-" class="0">
 <segment>
 <pinref part="ARDUINO_PRO-MINI" gate="G$1" pin="D4"/>
-<wire x1="-12.684" y1="113.157" x2="-15.24" y2="113.157" width="0.1524" layer="91"/>
-<wire x1="-15.24" y1="113.157" x2="-15.24" y2="111.76" width="0.1524" layer="91"/>
-<label x="-15.24" y="111.76" size="1.016" layer="95" rot="R180" xref="yes"/>
+<wire x1="-10.144" y1="82.677" x2="-12.7" y2="82.677" width="0.1524" layer="91"/>
+<wire x1="-12.7" y1="82.677" x2="-12.7" y2="81.28" width="0.1524" layer="91"/>
+<label x="-12.7" y="81.28" size="1.016" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
 <pinref part="X1" gate="-3" pin="S"/>
