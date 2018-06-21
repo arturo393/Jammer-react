@@ -3,19 +3,22 @@
 #include <FreeRTOS_AVR.h>
 #include <Arduino.h>
 
-
-#define CCPin                 10    // Corta corriente HIGH = shutdown / LOW = normal
-
+// inputs
+#define JamDetectionPin        3     // Jamming detection 2 HIGH = off & LOW = on
+#define JamDetectionAuxPin     7
 #define EnginePin              4  // (with pull down resistor) Engine power HIGH = on & LOW = off
-#define JamDetectionPin        8     // Jamming detection 2 HIGH = off & LOW = on
-#define DoorPin                9     // Door sensor  HIGH = open / LOW = close
-#define DisablePin             2     // Enable/disable jamming detection HIGH = on & LOW = off
-#define JammerAlertPin         15    // Jamming alert ping HIGH =
-#define LedPin                 7
+#define DoorPin                5     // Door sensor  HIGH = open / LOW = close
 #define EnableDoorPin          6
-#define SpeakerPin             16
-          //
-#define BuzzerPin              14
+#define DisablePin             2     // Enable/disable jamming detection HIGH = on & LOW = off
+#define GeneralPin             8
+
+
+// output
+#define CCPin                  10    // Corta corriente HIGH = shutdown / LOW = normal
+#define LedPin                 9
+#define SpeakerPin             12
+#define BuzzerPin              11
+#define JammerAlertPin         13    // Jamming alert ping HIGH =
 
 #define TIME_AFTER_START      15
 #define DOOR_ENABLE_SECONDS    7
@@ -159,6 +162,7 @@ static void vJammingTask(void *pvParameters) {
 
 static void vCCTask(void *pvParameters) {
   pinMode(CCPin, OUTPUT);
+  pinMode(JammerAlertPin,OUTPUT);
   uint32_t ulNotifiedValue = 0x00;
   int16_t c_cc = 0;
 
@@ -175,6 +179,7 @@ static void vCCTask(void *pvParameters) {
       Serial.print("JAMMER AND DOOR ... so ");
       digitalWrite(CCPin, HIGH);
       digitalWrite(SpeakerPin, HIGH);
+      digitalWrite(JammerAlertPin,HIGH);
       Serial.print("CC on! ");
       c_cc++;
       Serial.print(c_cc);
@@ -187,27 +192,23 @@ static void vCCTask(void *pvParameters) {
       digitalWrite(SpeakerPin, HIGH);
       Serial.print("2 minutes Jammer detection ... so you have 2 minutes slow down");
       digitalWrite(CCPin, HIGH);
-      digitalWrite(JammerAlertPin, LOW);
+      digitalWrite(JammerAlertPin, HIGH);
       Serial.print("CC on by jammer! ");
       vTaskDelay(configTICK_RATE_HZ*3);
 
       digitalWrite(CCPin, LOW);
-      digitalWrite(JammerAlertPin, HIGH);
       Serial.print("CC off by jammer! ");
       vTaskDelay(configTICK_RATE_HZ*10);
 
       digitalWrite(CCPin, HIGH);
-      digitalWrite(JammerAlertPin, LOW);
       Serial.print("CC on by jammer!  ");
       vTaskDelay(configTICK_RATE_HZ*3);
 
-      digitalWrite(JammerAlertPin, HIGH);
       digitalWrite(CCPin, LOW);
       Serial.print("CC off  by jammer!! ");
       vTaskDelay(configTICK_RATE_HZ*10);
 
       digitalWrite(CCPin, HIGH);
-      digitalWrite(JammerAlertPin, LOW);
       Serial.println("CC on by jammer! ! ");
     }
 
@@ -215,6 +216,7 @@ static void vCCTask(void *pvParameters) {
     {
       Serial.println("You did not push the button ... so CC ON");
       digitalWrite(CCPin, HIGH);
+      digitalWrite(JammerAlertPin,HIGH);
     }
 
     if( ( ulNotifiedValue & 0x08 ) != 0 )
@@ -222,6 +224,7 @@ static void vCCTask(void *pvParameters) {
       Serial.println("No Danger .. so CC OFF");
       digitalWrite(CCPin, LOW);
       digitalWrite(SpeakerPin, LOW);
+      digitalWrite(JammerAlertPin,LOW);
       c_cc = 0;
       vTaskResume(jammer_handler);
       vTaskResume(protocol_hdlr);
@@ -247,7 +250,7 @@ void setup() {
   // wait for Leonardo
   //while(!Serial) {}
 
-  attachInterrupt(digitalPinToInterrupt(2), ExternalInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, CHANGE);
 
   xTaskCreate(vProtocolTask,
     "CC",
