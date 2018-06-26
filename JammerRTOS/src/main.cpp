@@ -125,7 +125,7 @@ static void vDisableTask(void *pvParameters) {
 //------------------------------------------------------------------------------
 static void vJammingTask(void *pvParameters) {
 
-  pinMode(JammerAlertPin, OUTPUT);
+
   pinMode(DoorPin, INPUT_PULLUP);
   pinMode(JamDetectionPin, INPUT_PULLUP);
   pinMode(SpeakerPin,OUTPUT);
@@ -140,7 +140,7 @@ static void vJammingTask(void *pvParameters) {
       c_jammer++;
       Serial.print(c_jammer);
       Serial.println("(s)");
-      digitalWrite(JammerAlertPin,LOW);
+
 
       if(digitalRead(DoorPin) == HIGH){
         xTaskNotify(cc_handler,( 1UL << 0UL ), eSetBits );
@@ -155,7 +155,7 @@ static void vJammingTask(void *pvParameters) {
     }
     else{
     c_jammer = 0;
-    digitalWrite(JammerAlertPin,HIGH);
+
   }
   }
 }
@@ -179,7 +179,7 @@ static void vCCTask(void *pvParameters) {
       Serial.print("JAMMER AND DOOR ... so ");
       digitalWrite(CCPin, HIGH);
       digitalWrite(SpeakerPin, HIGH);
-      digitalWrite(JammerAlertPin,HIGH);
+      digitalWrite(JammerAlertPin,LOW);
       Serial.print("CC on! ");
       c_cc++;
       Serial.print(c_cc);
@@ -192,7 +192,7 @@ static void vCCTask(void *pvParameters) {
       digitalWrite(SpeakerPin, HIGH);
       Serial.print("2 minutes Jammer detection ... so you have 2 minutes slow down");
       digitalWrite(CCPin, HIGH);
-      digitalWrite(JammerAlertPin, HIGH);
+      digitalWrite(JammerAlertPin, LOW);
       Serial.print("CC on by jammer! ");
       vTaskDelay(configTICK_RATE_HZ*3);
 
@@ -216,7 +216,7 @@ static void vCCTask(void *pvParameters) {
     {
       Serial.println("You did not push the button ... so CC ON");
       digitalWrite(CCPin, HIGH);
-      digitalWrite(JammerAlertPin,HIGH);
+      digitalWrite(JammerAlertPin,LOW);
     }
 
     if( ( ulNotifiedValue & 0x08 ) != 0 )
@@ -224,7 +224,7 @@ static void vCCTask(void *pvParameters) {
       Serial.println("No Danger .. so CC OFF");
       digitalWrite(CCPin, LOW);
       digitalWrite(SpeakerPin, LOW);
-      digitalWrite(JammerAlertPin,LOW);
+      digitalWrite(JammerAlertPin,HIGH);
       c_cc = 0;
       vTaskResume(jammer_handler);
       vTaskResume(protocol_hdlr);
@@ -251,6 +251,8 @@ void setup() {
   //while(!Serial) {}
 
   attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, CHANGE);
+  pinMode(JammerAlertPin, OUTPUT);
+  digitalWrite(JammerAlertPin,HIGH);
 
   xTaskCreate(vProtocolTask,
     "CC",
