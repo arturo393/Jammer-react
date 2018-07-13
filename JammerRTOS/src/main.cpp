@@ -1,27 +1,34 @@
+
 // Simple demo of three threads
 // LED blink thread, print thread, and idle loop
 #include <FreeRTOS_AVR.h>
 #include <Arduino.h>
 
 // inputs
-#define JamDetectionPin        3     // Jamming detection 2 HIGH = off & LOW = on
+#define JamDetectionPin        4
+     // Jamming detection 2 HIGH = off & LOW = on
 #define JamDetectionAuxPin     7
-#define EnginePin              4  // (with pull down resistor) Engine power HIGH = on & LOW = off
+#define EnginePin              3  // (with pull down resistor) Engine power HIGH = on & LOW = off
 #define DoorPin                5     // Door sensor  HIGH = open / LOW = close
 #define EnableDoorPin          6
-#define DisablePin             2     // Enable/disable jamming detection HIGH = on & LOW = off
-#define GeneralPin             8
-
-
-// output
+#define DisablePin             2
+     // Enable/disable jamming detection HIGH = on & LOW = off
+#define GeneralPin             15
+// output|
 #define CCPin                  10    // Corta corriente HIGH = shutdown / LOW = normal
 #define LedPin                 9
+/* for arduino mini pro
 #define SpeakerPin             12
 #define BuzzerPin              11
 #define JammerAlertPin         13    // Jamming alert ping HIGH =
+*/
+#define SpeakerPin             16
+#define BuzzerPin              14
+#define JammerAlertPin         8    // Jamming alert ping HIGH =
 
 #define TIME_AFTER_START      15
 #define DOOR_ENABLE_SECONDS    7
+#define NOTIFICATION_TIME     60*60
 
 volatile uint32_t count = 0;
 
@@ -31,18 +38,17 @@ TaskHandle_t jammer_handler;
 TaskHandle_t disable_handler;
 TaskHandle_t door_handler;
 TaskHandle_t protocol_hdlr;
-
+TaskHandle_t ignition_hdlr;
 //------------------------------------------------------------------------------
 static void vDoorTask(void *pvParameters) {
 
-  pinMode(DoorPin, INPUT_PULLUP);
-  pinMode(EnginePin, INPUT_PULLUP);
-  pinMode(EnableDoorPin, INPUT_PULLUP);
-  pinMode(LedPin, OUTPUT);
   int16_t c_engine = 0;
+
+
 
   for(;;) {
     // Sleep for one second.
+
     vTaskDelay(configTICK_RATE_HZ);
     if(digitalRead(EnginePin) == LOW){
       if(c_engine == TIME_AFTER_START){
@@ -66,10 +72,7 @@ static void vDoorTask(void *pvParameters) {
 //------------------------------------------------------------------------------
 static void vProtocolTask(void *pvParameters) {
 
-  pinMode(DoorPin, INPUT_PULLUP);
-  pinMode(EnableDoorPin, INPUT_PULLUP);
-  pinMode(LedPin, OUTPUT);
-  pinMode(BuzzerPin, OUTPUT);
+
   bool protocol = false;
   uint32_t ulNotifiedValue = 0x00;
   for(;;) {
@@ -90,16 +93,18 @@ static void vProtocolTask(void *pvParameters) {
       for(int i = 0; i < 9; i++ ){
         digitalWrite(LedPin,LOW);
         digitalWrite(BuzzerPin,HIGH);
-        vTaskDelay(configTICK_RATE_HZ/3);
+        vTaskDelay(configTICK_RATE_HZ);
         digitalWrite(LedPin,HIGH);
         digitalWrite(BuzzerPin,LOW);
-        vTaskDelay(configTICK_RATE_HZ/3);
+        vTaskDelay(configTICK_RATE_HZ);
       }
-      if(digitalRead(DoorPin) == HIGH){
+      if(digitalRead(DoorPin) == LOW){
+  //    if(digitalRead(DoorPin) == HIGH){
         protocol = false;
       }
     }
-    if(protocol && digitalRead(DoorPin) == HIGH){
+    if(protocol && digitalRead(DoorPin) == LOW){
+    // if(protocol && digitalRead(DoorPin) == HIGH){
       xTaskNotify(cc_handler,( 1UL << 2UL ), eSetBits );
       protocol = false;
     }
@@ -110,8 +115,9 @@ static void vProtocolTask(void *pvParameters) {
 }
 //------------------------------------------------------------------------------
 static void vDisableTask(void *pvParameters) {
-  pinMode(DisablePin, INPUT_PULLUP);
-  for(;;) {
+
+  for
+  (;;) {
     if(digitalRead(DisablePin) == HIGH){
       xTaskNotify(cc_handler,( 1UL << 3UL ), eSetBits );
     }
@@ -123,12 +129,48 @@ static void vDisableTask(void *pvParameters) {
 }
 
 //------------------------------------------------------------------------------
+static void vIgnitionTask(void *pvParameters) {
+  bool EngineDelay = false;
+  uint32_t ulNotifiedValue = 0x00;
+  digitalWrite(JammerAlertPin,HIGH);
+
+
+
+  for  (;;) {
+    xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
+    0xFF, /* Reset the notification value to 0 on exit. */
+    &ulNotifiedValue, /* Notified value pass out in
+    ulNotifiedValue. */
+    configTICK_RATE_HZ  );  /* Block indefinitely. */
+   Serial.println("Ignition task");
+    if(digitalRead(EnginePin) == LOW){
+      Serial.println("Engine on");
+      digitalWrite(JammerAlertPin,LOW);
+    }
+    else{
+      Serial.println("Engine off");
+     digitalWrite(JammerAlertPin, HIGH);
+    }
+     if( ( ulNotifiedValue & 0x01 ) != 0 ){
+       Serial.println("Engine delay on");
+       EngineDelay = true;
+     }
+     if( ( ulNotifiedValue & 0x02 ) != 0 ){
+       Serial.println("Engine delay off");
+       EngineDelay = false;
+     }
+     if(EngineDelay == true){
+       vTaskDelay(configTICK_RATE_HZ*NOTIFICATION_TIME);
+       digitalWrite(JammerAlertPin,LOW);
+     }
+}
+}
+
+//------------------------------------------------------------------------------
 static void vJammingTask(void *pvParameters) {
 
-  pinMode(JammerAlertPin, OUTPUT);
-  pinMode(DoorPin, INPUT_PULLUP);
-  pinMode(JamDetectionPin, INPUT_PULLUP);
-  pinMode(SpeakerPin,OUTPUT);
+
+
   int16_t c_jammer = 0;
   for(;;) {
     // Sleep for one second.
@@ -140,9 +182,9 @@ static void vJammingTask(void *pvParameters) {
       c_jammer++;
       Serial.print(c_jammer);
       Serial.println("(s)");
-      digitalWrite(JammerAlertPin,LOW);
 
-      if(digitalRead(DoorPin) == HIGH){
+      if(digitalRead(DoorPin) == LOW){
+    //  if(digitalRead(DoorPin) == HIGH){
         xTaskNotify(cc_handler,( 1UL << 0UL ), eSetBits );
         vTaskSuspend( NULL );
       }
@@ -155,14 +197,15 @@ static void vJammingTask(void *pvParameters) {
     }
     else{
     c_jammer = 0;
-    digitalWrite(JammerAlertPin,HIGH);
+
   }
   }
 }
 
 static void vCCTask(void *pvParameters) {
-  pinMode(CCPin, OUTPUT);
-  pinMode(JammerAlertPin,OUTPUT);
+
+
+
   uint32_t ulNotifiedValue = 0x00;
   int16_t c_cc = 0;
 
@@ -179,11 +222,11 @@ static void vCCTask(void *pvParameters) {
       Serial.print("JAMMER AND DOOR ... so ");
       digitalWrite(CCPin, HIGH);
       digitalWrite(SpeakerPin, HIGH);
-      digitalWrite(JammerAlertPin,HIGH);
       Serial.print("CC on! ");
       c_cc++;
       Serial.print(c_cc);
       Serial.println("(s)");
+      xTaskNotify(ignition_hdlr,( 1UL << 0UL ), eSetBits );
 
     }
 
@@ -192,7 +235,6 @@ static void vCCTask(void *pvParameters) {
       digitalWrite(SpeakerPin, HIGH);
       Serial.print("2 minutes Jammer detection ... so you have 2 minutes slow down");
       digitalWrite(CCPin, HIGH);
-      digitalWrite(JammerAlertPin, HIGH);
       Serial.print("CC on by jammer! ");
       vTaskDelay(configTICK_RATE_HZ*3);
 
@@ -210,13 +252,15 @@ static void vCCTask(void *pvParameters) {
 
       digitalWrite(CCPin, HIGH);
       Serial.println("CC on by jammer! ! ");
+
+      xTaskNotify(ignition_hdlr,( 1UL << 0UL ), eSetBits );
     }
 
     if( ( ulNotifiedValue & 0x04 ) != 0 )
     {
       Serial.println("You did not push the button ... so CC ON");
       digitalWrite(CCPin, HIGH);
-      digitalWrite(JammerAlertPin,HIGH);
+      xTaskNotify(ignition_hdlr,( 1UL << 0UL ), eSetBits );
     }
 
     if( ( ulNotifiedValue & 0x08 ) != 0 )
@@ -224,15 +268,16 @@ static void vCCTask(void *pvParameters) {
       Serial.println("No Danger .. so CC OFF");
       digitalWrite(CCPin, LOW);
       digitalWrite(SpeakerPin, LOW);
-      digitalWrite(JammerAlertPin,LOW);
       c_cc = 0;
       vTaskResume(jammer_handler);
       vTaskResume(protocol_hdlr);
+      xTaskNotify(ignition_hdlr,( 1UL << 1UL ), eSetBits );
     }
     if( ( ulNotifiedValue & 0x10 ) != 0 )
     {
       Serial.println("CC on ! by Safecar");
       digitalWrite(CCPin, HIGH);
+
     }
   }
 }
@@ -241,6 +286,7 @@ static void ExternalInterrupt()
 {
   BaseType_t xYieldRequired;
   xYieldRequired = xTaskResumeFromISR( disable_handler );
+  Serial.println("Interrupcion");
   if( xYieldRequired == pdTRUE )
   taskYIELD();
 }
@@ -249,8 +295,27 @@ void setup() {
   Serial.begin(9600);
   // wait for Leonardo
   //while(!Serial) {}
+  pinMode(CCPin, OUTPUT);
+  pinMode(JammerAlertPin,OUTPUT);
+  pinMode(SpeakerPin,OUTPUT);
+  pinMode(LedPin, OUTPUT);
+  pinMode(BuzzerPin, OUTPUT);
 
-  attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, CHANGE);
+  pinMode(EnableDoorPin, INPUT_PULLUP);
+  pinMode(DoorPin, INPUT_PULLUP);
+  pinMode(JamDetectionPin, INPUT_PULLUP);
+  pinMode(EnginePin, INPUT_PULLUP);
+  pinMode(DisablePin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, FALLING);
+
+
+  xTaskCreate(vIgnitionTask,
+    "CC",
+    configMINIMAL_STACK_SIZE + 50,
+    NULL,
+    tskIDLE_PRIORITY + 2,
+    &ignition_hdlr);
+
 
   xTaskCreate(vProtocolTask,
     "CC",
