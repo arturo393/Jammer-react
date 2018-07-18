@@ -118,10 +118,10 @@ static void vDisableTask(void *pvParameters) {
 
   for
   (;;) {
-    if(digitalRead(DisablePin) == HIGH){
+    if(digitalRead(DisablePin) == HIGH){ // desactiva el cc
       xTaskNotify(cc_handler,( 1UL << 3UL ), eSetBits );
     }
-    if(digitalRead(DisablePin) == LOW){
+    if(digitalRead(DisablePin) == LOW){ // se activa el cc
       xTaskNotify(cc_handler,( 1UL << 4UL ), eSetBits );
     }
     vTaskSuspend( NULL );
@@ -135,20 +135,19 @@ static void vIgnitionTask(void *pvParameters) {
   digitalWrite(JammerAlertPin,HIGH);
 
 
-
   for  (;;) {
     xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
     0xFF, /* Reset the notification value to 0 on exit. */
     &ulNotifiedValue, /* Notified value pass out in
     ulNotifiedValue. */
     configTICK_RATE_HZ  );  /* Block indefinitely. */
-   Serial.println("Ignition task");
+
     if(digitalRead(EnginePin) == LOW){
-      Serial.println("Engine on");
+
       digitalWrite(JammerAlertPin,LOW);
     }
     else{
-      Serial.println("Engine off");
+
      digitalWrite(JammerAlertPin, HIGH);
     }
      if( ( ulNotifiedValue & 0x01 ) != 0 ){
@@ -156,7 +155,6 @@ static void vIgnitionTask(void *pvParameters) {
        EngineDelay = true;
      }
      if( ( ulNotifiedValue & 0x02 ) != 0 ){
-       Serial.println("Engine delay off");
        EngineDelay = false;
      }
      if(EngineDelay == true){
@@ -168,7 +166,6 @@ static void vIgnitionTask(void *pvParameters) {
 
 //------------------------------------------------------------------------------
 static void vJammingTask(void *pvParameters) {
-
 
 
   int16_t c_jammer = 0;
@@ -203,8 +200,6 @@ static void vJammingTask(void *pvParameters) {
 }
 
 static void vCCTask(void *pvParameters) {
-
-
 
   uint32_t ulNotifiedValue = 0x00;
   int16_t c_cc = 0;
@@ -277,7 +272,6 @@ static void vCCTask(void *pvParameters) {
     {
       Serial.println("CC on ! by Safecar");
       digitalWrite(CCPin, HIGH);
-
     }
   }
 }
@@ -306,50 +300,50 @@ void setup() {
   pinMode(JamDetectionPin, INPUT_PULLUP);
   pinMode(EnginePin, INPUT_PULLUP);
   pinMode(DisablePin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, CHANGE );
 
-
+/*
   xTaskCreate(vIgnitionTask,
-    "CC",
-    configMINIMAL_STACK_SIZE + 50,
+    "Ignition",
+    configMINIMAL_STACK_SIZE + 10,
     NULL,
-    tskIDLE_PRIORITY + 2,
+    tskIDLE_PRIORITY + 5,
     &ignition_hdlr);
 
 
   xTaskCreate(vProtocolTask,
-    "CC",
-    configMINIMAL_STACK_SIZE + 50,
+    "Protocol",
+    configMINIMAL_STACK_SIZE + 20,
     NULL,
-    tskIDLE_PRIORITY + 2,
+    tskIDLE_PRIORITY + 4,
     &protocol_hdlr);
 
   xTaskCreate(vDoorTask,
-    "CC",
-    configMINIMAL_STACK_SIZE + 50,
+    "Door",
+    configMINIMAL_STACK_SIZE + 10,
     NULL,
-    tskIDLE_PRIORITY + 2,
+    tskIDLE_PRIORITY + 3,
     &door_handler);
 
   xTaskCreate(vDisableTask,
-    "CC",
-    configMINIMAL_STACK_SIZE + 50,
+    "Disable",
+    configMINIMAL_STACK_SIZE + 5,
     NULL,
     tskIDLE_PRIORITY + 2,
     &disable_handler);
-
+*/
   xTaskCreate(vCCTask,
     "CC",
-          configMINIMAL_STACK_SIZE + 50,
+          configMINIMAL_STACK_SIZE + 30,
           NULL,
           tskIDLE_PRIORITY + 2,
           &cc_handler);
 
           xTaskCreate(vJammingTask,
             "Jamming",
-            configMINIMAL_STACK_SIZE + 50,
+            configMINIMAL_STACK_SIZE + 20,
             NULL,
-            tskIDLE_PRIORITY + 2,
+            tskIDLE_PRIORITY + 1,
             &jammer_handler);
 
             vTaskStartScheduler();
