@@ -1,4 +1,4 @@
-
+IgnitionPin
 // Simple demo of three threads
 // LED blink thread, print thread, and idle loop
 #include <FreeRTOS_AVR.h>
@@ -10,7 +10,7 @@
 #define JamDetectionPin        4
      // Jamming detection 2 HIGH = off & LOW = on
 #define JamDetectionAuxPin     7
-#define EnginePin              3  // (with pull down resistor) Engine power HIGH = on & LOW = off
+#define IgnitionPin              3  // (with pull down resistor) Engine power HIGH = on & LOW = off
 #define DoorPin                5     // Door sensor  HIGH = open / LOW = close
 #define EnableDoorPin          6
 #define DisablePin             2
@@ -49,7 +49,7 @@ static void vDoorTask(void *pvParameters) {
   for(;;) {
     // Sleep for one second.
     vTaskDelay(configTICK_RATE_HZ);
-    if(digitalRead(EnginePin) == LOW){
+    if(digitalRead(IgnitionPin) == LOW){
 
       if(c_engine == TIME_AFTER_START){
         xTaskNotify(protocol_hdlr,( 1UL << 0UL ), eSetBits );
@@ -146,7 +146,7 @@ static void vIgnitionTask(void *pvParameters) {
     ulNotifiedValue. */
     configTICK_RATE_HZ  );  /* Block indefinitely. */
 
-    if(digitalRead(EnginePin) == LOW){
+    if(digitalRead(IgnitionPin) == LOW){
       digitalWrite(EngineOn,LOW);
     }
     else{
@@ -302,7 +302,7 @@ void setup() {
   pinMode(EnableDoorPin, INPUT_PULLUP);
   pinMode(DoorPin, INPUT_PULLUP);
   pinMode(JamDetectionPin, INPUT_PULLUP);
-  pinMode(EnginePin, INPUT_PULLUP);
+  pinMode(IgnitionPin, INPUT_PULLUP);
   pinMode(DisablePin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, CHANGE );
 
