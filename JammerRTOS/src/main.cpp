@@ -4,6 +4,8 @@
 #include <FreeRTOS_AVR.h>
 #include <Arduino.h>
 
+#define DEBUG 1
+
 // inputs
 #define JamDetectionPin        4
      // Jamming detection 2 HIGH = off & LOW = on
@@ -20,11 +22,11 @@
 /* for arduino mini pro
 #define SpeakerPin             12
 #define BuzzerPin              11
-#define JammerAlertPin         13    // Jamming alert ping HIGH =
+#define EngineOn         13    // Jamming alert ping HIGH =
 */
 #define SpeakerPin             16
 #define BuzzerPin              14
-#define JammerAlertPin         8    // Jamming alert ping HIGH =
+#define EngineOn         8    // Jamming alert ping HIGH =
 
 #define TIME_AFTER_START      15
 #define DOOR_ENABLE_SECONDS    7
@@ -44,22 +46,23 @@ static void vDoorTask(void *pvParameters) {
 
   int16_t c_engine = 0;
 
-
-
   for(;;) {
     // Sleep for one second.
-
     vTaskDelay(configTICK_RATE_HZ);
     if(digitalRead(EnginePin) == LOW){
+
       if(c_engine == TIME_AFTER_START){
         xTaskNotify(protocol_hdlr,( 1UL << 0UL ), eSetBits );
       }
-      // for debbugin
+
+      #ifdef DEBUG
       if(c_engine % 60 == 0){
         Serial.print(c_engine / 60 );
         Serial.print("(min)");
         Serial.println(" Engine ON ");
       }
+      #endif DEBUG
+
       c_engine++;
     }
     else { // ENGINE OFF
@@ -113,6 +116,7 @@ static void vProtocolTask(void *pvParameters) {
     }
   }
 }
+
 //------------------------------------------------------------------------------
 static void vDisableTask(void *pvParameters) {
 
@@ -132,7 +136,7 @@ static void vDisableTask(void *pvParameters) {
 static void vIgnitionTask(void *pvParameters) {
   bool EngineDelay = false;
   uint32_t ulNotifiedValue = 0x00;
-  digitalWrite(JammerAlertPin,HIGH);
+  digitalWrite(EngineOn,HIGH);
 
 
   for  (;;) {
@@ -143,12 +147,11 @@ static void vIgnitionTask(void *pvParameters) {
     configTICK_RATE_HZ  );  /* Block indefinitely. */
 
     if(digitalRead(EnginePin) == LOW){
-
-      digitalWrite(JammerAlertPin,LOW);
+      digitalWrite(EngineOn,LOW);
     }
     else{
 
-     digitalWrite(JammerAlertPin, HIGH);
+     digitalWrite(EngineOn, HIGH);
     }
      if( ( ulNotifiedValue & 0x01 ) != 0 ){
        Serial.println("Engine delay on");
@@ -159,7 +162,7 @@ static void vIgnitionTask(void *pvParameters) {
      }
      if(EngineDelay == true){
        vTaskDelay(configTICK_RATE_HZ*NOTIFICATION_TIME);
-       digitalWrite(JammerAlertPin,LOW);
+       digitalWrite(EngineOn,LOW);
      }
 }
 }
@@ -171,30 +174,31 @@ static void vJammingTask(void *pvParameters) {
   int16_t c_jammer = 0;
   for(;;) {
     // Sleep for one second.
-
     vTaskDelay(configTICK_RATE_HZ);
 
     if(digitalRead(JamDetectionPin) == LOW){
-      Serial.print("Jammer Alert ");
       c_jammer++;
+
+      #ifdef DEBUG
+      Serial.print("Jammer Alert ");
       Serial.print(c_jammer);
       Serial.println("(s)");
+      #endif DEBUG
 
       if(digitalRead(DoorPin) == LOW){
-    //  if(digitalRead(DoorPin) == HIGH){
+        // se puede esperar un tiempo antes apagar el motor
         xTaskNotify(cc_handler,( 1UL << 0UL ), eSetBits );
         vTaskSuspend( NULL );
       }
 
       if (c_jammer >= 120){
-        xTaskNotify(cc_handler,( 1UL << 1UL ), eSetBits );
         c_jammer = 0;
+        xTaskNotify(cc_handler,( 1UL << 1UL ), eSetBits );
         vTaskSuspend( NULL );
       }
     }
     else{
     c_jammer = 0;
-
   }
   }
 }
@@ -290,7 +294,7 @@ void setup() {
   // wait for Leonardo
   //while(!Serial) {}
   pinMode(CCPin, OUTPUT);
-  pinMode(JammerAlertPin,OUTPUT);
+  pinMode(EngineOn,OUTPUT);
   pinMode(SpeakerPin,OUTPUT);
   pinMode(LedPin, OUTPUT);
   pinMode(BuzzerPin, OUTPUT);
@@ -302,14 +306,12 @@ void setup() {
   pinMode(DisablePin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, CHANGE );
 
-/*
   xTaskCreate(vIgnitionTask,
     "Ignition",
     configMINIMAL_STACK_SIZE + 10,
     NULL,
     tskIDLE_PRIORITY + 5,
     &ignition_hdlr);
-
 
   xTaskCreate(vProtocolTask,
     "Protocol",
@@ -324,7 +326,7 @@ void setup() {
     NULL,
     tskIDLE_PRIORITY + 3,
     &door_handler);
-
+/*
   xTaskCreate(vDisableTask,
     "Disable",
     configMINIMAL_STACK_SIZE + 5,
@@ -334,27 +336,27 @@ void setup() {
 */
   xTaskCreate(vCCTask,
     "CC",
-          configMINIMAL_STACK_SIZE + 30,
-          NULL,
-          tskIDLE_PRIORITY + 2,
-          &cc_handler);
+    configMINIMAL_STACK_SIZE + 30,
+    NULL,
+    tskIDLE_PRIORITY + 2,
+    &cc_handler);
 
-          xTaskCreate(vJammingTask,
-            "Jamming",
-            configMINIMAL_STACK_SIZE + 20,
-            NULL,
-            tskIDLE_PRIORITY + 1,
-            &jammer_handler);
+  xTaskCreate(vJammingTask,
+    "Jamming",
+    configMINIMAL_STACK_SIZE + 20,
+    NULL,
+    tskIDLE_PRIORITY + 1,
+    &jammer_handler);
 
-            vTaskStartScheduler();
+    vTaskStartScheduler();
 
-            // should never return
-            Serial.println(F("Die"));
-            while(1);
-          }
-          //------------------------------------------------------------------------------
-          // WARNING idle loop has a very small stack (configMINIMAL_STACK_SIZE)
-          // loop must never block
-          void loop() {
+  // should never return
+  Serial.println(F("Die"));
+  while(1);
+  }
 
-          }
+  //------------------------------------------------------------------------------
+  // WARNING idle loop has a very small stack (configMINIMAL_STACK_SIZE)
+  // loop must never block
+  void loop() {
+  }
