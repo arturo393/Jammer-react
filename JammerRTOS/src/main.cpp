@@ -1,44 +1,32 @@
-IgnitionPin
 // Simple demo of three threads
 // LED blink thread, print thread, and idle loop
 #include <FreeRTOS_AVR.h>
 #include <Arduino.h>
+#include "basic_io_avr.h"
 
 #define DEBUG 1
-
 // inputs
+#define CCDisable              2      // Enable/disable jamming detection HIGH = on & LOW = off
+#define IgnitionPin            3  // (with pull down resistor) Engine power HIGH = on & LOW = off
 #define JamDetectionPin        4
-     // Jamming detection 2 HIGH = off & LOW = on
-#define JamDetectionAuxPin     7
-#define IgnitionPin              3  // (with pull down resistor) Engine power HIGH = on & LOW = off
 #define DoorPin                5     // Door sensor  HIGH = open / LOW = close
 #define EnableDoorPin          6
-#define DisablePin             2
-     // Enable/disable jamming detection HIGH = on & LOW = off
-#define GeneralPin             15
-// output|
-#define CCPin                  10    // Corta corriente HIGH = shutdown / LOW = normal
+#define EngineStatusPin        8    // Jamming alert ping HIGH =
+#define JamDetectionAuxPin     7
 #define LedPin                 9
-/* for arduino mini pro
-#define SpeakerPin             12
-#define BuzzerPin              11
-#define EngineOn         13    // Jamming alert ping HIGH =
-*/
-#define SpeakerPin             16
+#define CCPin                  10    // Corta corriente HIGH = shutdown / LOW = normal
 #define BuzzerPin              14
-#define EngineOn         8    // Jamming alert ping HIGH =
+#define GeneralPin             15
+#define SpeakerPin             16
 
-#define TIME_AFTER_START      15
+#define TIME_AFTER_START       15
 #define DOOR_ENABLE_SECONDS    7
-#define NOTIFICATION_TIME     60*60
+#define NOTIFICATION_TIME      30
 
-volatile uint32_t count = 0;
-
-// handle for blink task
 TaskHandle_t cc_handler;
 TaskHandle_t jammer_handler;
 TaskHandle_t disable_handler;
-TaskHandle_t door_handler;
+//TaskHandle_t door_handler;
 TaskHandle_t protocol_hdlr;
 TaskHandle_t ignition_hdlr;
 //------------------------------------------------------------------------------
@@ -78,6 +66,7 @@ static void vProtocolTask(void *pvParameters) {
 
   bool protocol = false;
   uint32_t ulNotifiedValue = 0x00;
+
   for(;;) {
     xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
     0xFF, /* Reset the notification value to 0 on exit. */
@@ -122,10 +111,10 @@ static void vDisableTask(void *pvParameters) {
 
   for
   (;;) {
-    if(digitalRead(DisablePin) == HIGH){ // desactiva el cc
+    if(digitalRead(CCDisable) == HIGH){ // desactiva el cc
       xTaskNotify(cc_handler,( 1UL << 3UL ), eSetBits );
     }
-    if(digitalRead(DisablePin) == LOW){ // se activa el cc
+    if(digitalRead(CCDisable) == LOW){ // se activa el cc
       xTaskNotify(cc_handler,( 1UL << 4UL ), eSetBits );
     }
     vTaskSuspend( NULL );
@@ -133,26 +122,45 @@ static void vDisableTask(void *pvParameters) {
 }
 
 //------------------------------------------------------------------------------
-static void vIgnitionTask(void *pvParameters) {
+static void vIgnitionNotification(void *pvParameters) {
   bool EngineDelay = false;
   uint32_t ulNotifiedValue = 0x00;
-  digitalWrite(EngineOn,HIGH);
+  int16_t c_engine = 0;
+  char buffer[40];
 
+  digitalWrite(EngineStatusPin,HIGH);
 
   for  (;;) {
+
+    // Sleep for one second.
+//    vTaskDelay(configTICK_RATE_HZ);
+    if(digitalRead(IgnitionPin) == LOW){
+      digitalWrite(EngineStatusPin,LOW);
+      if(c_engine == TIME_AFTER_START){
+        xTaskNotify(protocol_hdlr,( 1UL << 0UL ), eSetBits );
+      }
+
+      #ifdef DEBUG
+      if((c_engine % 60) == 0){
+        sprintf(buffer, "%d (min) Engine On\n", c_engine/60);
+        vPrintString(buffer);
+      }
+      #endif DEBUG
+
+      c_engine++;
+    }
+    else { // ENGINE OFF
+      digitalWrite(EngineStatusPin, HIGH);
+      c_engine = 0;
+      vPrintString("Engine is power off\n");
+    }
+
     xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
     0xFF, /* Reset the notification value to 0 on exit. */
     &ulNotifiedValue, /* Notified value pass out in
     ulNotifiedValue. */
     configTICK_RATE_HZ  );  /* Block indefinitely. */
 
-    if(digitalRead(IgnitionPin) == LOW){
-      digitalWrite(EngineOn,LOW);
-    }
-    else{
-
-     digitalWrite(EngineOn, HIGH);
-    }
      if( ( ulNotifiedValue & 0x01 ) != 0 ){
        Serial.println("Engine delay on");
        EngineDelay = true;
@@ -162,8 +170,9 @@ static void vIgnitionTask(void *pvParameters) {
      }
      if(EngineDelay == true){
        vTaskDelay(configTICK_RATE_HZ*NOTIFICATION_TIME);
-       digitalWrite(EngineOn,LOW);
+       digitalWrite(EngineStatusPin,LOW);
      }
+
 }
 }
 
@@ -284,7 +293,7 @@ static void ExternalInterrupt()
 {
   BaseType_t xYieldRequired;
   xYieldRequired = xTaskResumeFromISR( disable_handler );
-  Serial.println("Interrupcion");
+  vPrintString("Interrupcion");
   if( xYieldRequired == pdTRUE )
   taskYIELD();
 }
@@ -292,63 +301,48 @@ static void ExternalInterrupt()
 void setup() {
   Serial.begin(9600);
   // wait for Leonardo
-  //while(!Serial) {}
+  while(!Serial) {}
+
+ vPrintString("Inicio del programa\n");
+
   pinMode(CCPin, OUTPUT);
-  pinMode(EngineOn,OUTPUT);
+  vPrintString("CCPin output\n");
+  pinMode(EngineStatusPin,OUTPUT);
+  vPrintString("EngineStatusPin out\n");
   pinMode(SpeakerPin,OUTPUT);
+  vPrintString("SpeakerPin out\n");
   pinMode(LedPin, OUTPUT);
+  vPrintString("LedPin out\n");
   pinMode(BuzzerPin, OUTPUT);
-
+  vPrintString("BuzzerPin out\n");
   pinMode(EnableDoorPin, INPUT_PULLUP);
+  vPrintString("EnableDoorPin input pullup\n");
   pinMode(DoorPin, INPUT_PULLUP);
+  vPrintString("DoorPin input pullup\n");
   pinMode(JamDetectionPin, INPUT_PULLUP);
+  vPrintString("JamDetectionPin input pullup\n");
   pinMode(IgnitionPin, INPUT_PULLUP);
-  pinMode(DisablePin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(DisablePin), ExternalInterrupt, CHANGE );
+  vPrintString("IgnitionPin input pullup\n");
+  pinMode(CCDisable, INPUT_PULLUP);
+  vPrintString("CCDisable input pullup\n");
+//  attachInterrupt(digitalPinToInterrupt(CCDisable), ExternalInterrupt, FALLING );
+  vPrintString("CCDisable interrupt enable\n");
+  xTaskCreate(vDisableTask,"Disable",configMINIMAL_STACK_SIZE + 5,NULL,tskIDLE_PRIORITY + 2,&disable_handler);
+  vPrintString("Disable task created\n");
+  xTaskCreate(vCCTask,"CC",configMINIMAL_STACK_SIZE + 30, NULL, tskIDLE_PRIORITY + 2,&cc_handler);
+  vPrintString("CC task created\n");
+  xTaskCreate(vJammingTask,"Jamming",configMINIMAL_STACK_SIZE + 20, NULL, tskIDLE_PRIORITY + 1, &jammer_handler);
+  vPrintString("Jamming task created\n");
 
-  xTaskCreate(vIgnitionTask,
-    "Ignition",
-    configMINIMAL_STACK_SIZE + 10,
-    NULL,
-    tskIDLE_PRIORITY + 5,
-    &ignition_hdlr);
+  xTaskCreate(vIgnitionNotification,"Ignition",configMINIMAL_STACK_SIZE + 50,NULL,tskIDLE_PRIORITY + 3,&ignition_hdlr);
+  vPrintString("vIgnitionNotification task created\n");
 
-  xTaskCreate(vProtocolTask,
-    "Protocol",
-    configMINIMAL_STACK_SIZE + 20,
-    NULL,
-    tskIDLE_PRIORITY + 4,
-    &protocol_hdlr);
+  xTaskCreate(vProtocolTask,"Protocol",configMINIMAL_STACK_SIZE + 20,NULL,tskIDLE_PRIORITY + 3,&protocol_hdlr);
+  vPrintString("Protocol task created\n");
+  //xTaskCreate(vDoorTask,"Door",configMINIMAL_STACK_SIZE + 10,NULL,tskIDLE_PRIORITY + 3,&door_handler);
 
-  xTaskCreate(vDoorTask,
-    "Door",
-    configMINIMAL_STACK_SIZE + 10,
-    NULL,
-    tskIDLE_PRIORITY + 3,
-    &door_handler);
-/*
-  xTaskCreate(vDisableTask,
-    "Disable",
-    configMINIMAL_STACK_SIZE + 5,
-    NULL,
-    tskIDLE_PRIORITY + 2,
-    &disable_handler);
-*/
-  xTaskCreate(vCCTask,
-    "CC",
-    configMINIMAL_STACK_SIZE + 30,
-    NULL,
-    tskIDLE_PRIORITY + 2,
-    &cc_handler);
-
-  xTaskCreate(vJammingTask,
-    "Jamming",
-    configMINIMAL_STACK_SIZE + 20,
-    NULL,
-    tskIDLE_PRIORITY + 1,
-    &jammer_handler);
-
-    vTaskStartScheduler();
+  vPrintString("Se crean las tareas\n");
+  vTaskStartScheduler();
 
   // should never return
   Serial.println(F("Die"));
