@@ -91,6 +91,7 @@ static void vDisableTask(void *pvParameters) {
 noInterrupts();
 attachInterrupt(digitalPinToInterrupt(CCDisable), CCInterrupt, CHANGE );
 interrupts();
+
   for  (;;) {
 
     vTaskSuspend( NULL );
@@ -111,19 +112,18 @@ static void vIgnitionNotification(void *pvParameters) {
   int32_t c_engine_off = 0;
   int16_t c_notification = 0;
 
-  noInterrupts();
+taskENTER_CRITICAL();
   digitalWrite(EngineStatusPin,HIGH);
-  interrupts();
+taskEXIT_CRITICAL();
 
   for  (;;) {
 
     // Sleep for one second.
 //    vTaskDelay(configTICK_RATE_HZ);
-    if(digitalRead(IgnitionPin) == LOW){
+    if(digitalRead(IgnitionPin) == LOW || EngineDelay){
       if(c_engine_on == 0){
-      noInterrupts();
-//      digitalWrite(EngineStatusPin,LOW);
-      interrupts();
+      digitalWrite(EngineStatusPin,LOW);
+      vPrintString("Ignition on\n");
       }
       if(c_engine_on == TIME_AFTER_START){
         xTaskNotify(protocol_hdlr,( 1UL << 0UL ), eSetBits );
@@ -131,7 +131,7 @@ static void vIgnitionNotification(void *pvParameters) {
 
       #ifdef DEBUG
       if((c_engine_on % 60) == 0){
-        vPrintStringAndNumber("Engine min on ",c_engine_on/60);
+        vPrintStringAndNumber("Engine  min on ",c_engine_on/60);
       }
       #endif // DEBUG
 
@@ -140,10 +140,12 @@ static void vIgnitionNotification(void *pvParameters) {
     }
     else { // ENGINE OFF
       if(c_engine_off == 0){
-        noInterrupts();
-        digitalWrite(EngineStatusPin, HIGH);
-        vTaskDelay(configTICK_RATE_HZ*2);
-        interrupts();
+      taskDISABLE_INTERRUPTS();
+      vTaskDelay(configTICK_RATE_HZ*4);
+      digitalWrite(EngineStatusPin, HIGH);
+      vTaskDelay(configTICK_RATE_HZ*4);
+  //    taskENABLE_INTERRUPTS();
+      vPrintString("Ignition off\n");
       }
       if(c_engine_off == TIME_AFTER_STOP){
         xTaskNotify(protocol_hdlr,( 1UL << 1UL ), eSetBits );
@@ -163,7 +165,7 @@ static void vIgnitionNotification(void *pvParameters) {
     ulNotifiedValue. */
     configTICK_RATE_HZ  );  /* Block indefinitely. */
 
-/*     if( ( ulNotifiedValue & 0x01 ) != 0 ){
+     if( ( ulNotifiedValue & 0x01 ) != 0 ){
        vPrintString("Engine delay on\n\r");
        EngineDelay = true;
      }
@@ -173,23 +175,6 @@ static void vIgnitionNotification(void *pvParameters) {
        c_notification = 0;
 
      }
-     if(EngineDelay == true){
-        if (c_notification == 0){
-      digitalWrite(EngineStatusPin,LOW); //turn on notification
-        vPrintString("Wait for notification time ");
-      }
-        if (c_notification < NOTIFICATION_TIME){
-          sprintf(buffer, "%d (s) ", c_notification);
-          vPrintString(buffer);
-          vTaskDelay(configTICK_RATE_HZ);
-          c_notification++;
-        }
-        else{
-        c_notification = 0;
-        vPrintString("\n\r");
-      }
-       }
-       */
 }
 }
 
@@ -206,7 +191,7 @@ static void vJammingTask(void *pvParameters) {
 
       #ifdef DEBUG
       vPrintStringAndNumber("Jammer Alert secs",c_jammer);
-        #endif // DEBUG
+      #endif // DEBUG
 
       if(digitalRead(DoorPin) == LOW){
         // se puede esperar un tiempo antes apagar el motor
@@ -367,8 +352,6 @@ void setup() {
   vPrintString("IgnitionPin input pullup\n");
   pinMode(CCDisable, INPUT_PULLUP);
   vPrintString("CCDisable input pullup\n");
-  noInterrupts();
-  interrupts();
   vPrintString("All task ara created!\n\n\n\r");
   vTaskStartScheduler();
 
