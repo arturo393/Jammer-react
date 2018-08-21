@@ -27,7 +27,6 @@
 TaskHandle_t cc_handler;
 TaskHandle_t jammer_handler;
 TaskHandle_t disable_handler;
-//TaskHandle_t door_handler;
 TaskHandle_t protocol_hdlr;
 TaskHandle_t ignition_hdlr;
 
@@ -35,7 +34,6 @@ void CCInterrupt();
 
 //------------------------------------------------------------------------------
 static void vProtocolTask(void *pvParameters) {
-
 
   bool protocol = false;
   uint32_t ulNotifiedValue = 0x00;
@@ -87,13 +85,8 @@ static void vProtocolTask(void *pvParameters) {
 
 //------------------------------------------------------------------------------
 static void vDisableTask(void *pvParameters) {
-
-noInterrupts();
 attachInterrupt(digitalPinToInterrupt(CCDisable), CCInterrupt, CHANGE );
-interrupts();
-
   for  (;;) {
-
     vTaskSuspend( NULL );
     if(digitalRead(CCDisable) == HIGH){ // desactiva el cc
       xTaskNotify(cc_handler,( 1UL << 3UL ), eSetBits );
@@ -111,16 +104,10 @@ static void vIgnitionNotification(void *pvParameters) {
   int32_t c_engine_on = 0;
   int32_t c_engine_off = 0;
   int16_t c_notification = 0;
-
-taskENTER_CRITICAL();
   digitalWrite(EngineStatusPin,HIGH);
-taskEXIT_CRITICAL();
-
   for  (;;) {
-
-    // Sleep for one second.
-//    vTaskDelay(configTICK_RATE_HZ);
-    if(digitalRead(IgnitionPin) == LOW || EngineDelay){
+    //if(digitalRead(IgnitionPin) == LOW || EngineDelay){
+      if(digitalRead(IgnitionPin) == LOW){
       if(c_engine_on == 0){
       digitalWrite(EngineStatusPin,LOW);
       vPrintString("Ignition on\n");
@@ -128,36 +115,28 @@ taskEXIT_CRITICAL();
       if(c_engine_on == TIME_AFTER_START){
         xTaskNotify(protocol_hdlr,( 1UL << 0UL ), eSetBits );
       }
-
-      #ifdef DEBUG
       if((c_engine_on % 60) == 0){
-        vPrintStringAndNumber("Engine  min on ",c_engine_on/60);
+        Serial.print("Engine  min on ");
+        Serial.prinln(c_engine_on/60);
       }
-      #endif // DEBUG
-
       c_engine_on++;
       c_engine_off = 0;
     }
     else { // ENGINE OFF
       if(c_engine_off == 0){
-      taskDISABLE_INTERRUPTS();
-      vTaskDelay(configTICK_RATE_HZ*4);
       digitalWrite(EngineStatusPin, HIGH);
-      vTaskDelay(configTICK_RATE_HZ*4);
-  //    taskENABLE_INTERRUPTS();
       vPrintString("Ignition off\n");
       }
       if(c_engine_off == TIME_AFTER_STOP){
         xTaskNotify(protocol_hdlr,( 1UL << 1UL ), eSetBits );
       }
-      #ifdef DEBUG
-      if((c_engine_off % 60) == 0)
-        vPrintStringAndNumber("Engine min off ",c_engine_off/60);
-      #endif // DEBUG
-
-  c_engine_on = 0;
-  c_engine_off++;
-}
+      if(c_engine_off % 60 == 0){
+      Serial.print("Engine min off ");
+      Serial.println(c_engine_off/60);
+      }
+      c_engine_on = 0;
+      c_engine_off++;
+  }
 
     xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
     0xFF, /* Reset the notification value to 0 on exit. */
@@ -173,9 +152,8 @@ taskEXIT_CRITICAL();
        vPrintString("Engine delay off\n\r");
        EngineDelay = false;
        c_notification = 0;
-
-     }
-}
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -188,26 +166,22 @@ static void vJammingTask(void *pvParameters) {
 
     if(digitalRead(JamDetectionPin) == LOW){
       c_jammer++;
-
-      #ifdef DEBUG
-      vPrintStringAndNumber("Jammer Alert secs",c_jammer);
-      #endif // DEBUG
-
       if(digitalRead(DoorPin) == LOW){
         // se puede esperar un tiempo antes apagar el motor
         xTaskNotify(cc_handler,( 1UL << 0UL ), eSetBits );
         vTaskSuspend( NULL );
       }
-
       if (c_jammer >= 120){
         c_jammer = 0;
         xTaskNotify(cc_handler,( 1UL << 1UL ), eSetBits );
         vTaskSuspend( NULL );
       }
+      Serial.print("Jammer Alert secs");
+      Serial.println(c_jammer);
     }
     else{
     c_jammer = 0;
-  }
+    }
   }
 }
 
@@ -321,14 +295,10 @@ void setup() {
   vPrintString("CC task created\n");
   xTaskCreate(vJammingTask,"Jamming",configMINIMAL_STACK_SIZE + 20, NULL, tskIDLE_PRIORITY + 1, &jammer_handler);
   vPrintString("Jamming task created\n");
-
   xTaskCreate(vIgnitionNotification,"Ignition",configMINIMAL_STACK_SIZE + 50,NULL,tskIDLE_PRIORITY + 3,&ignition_hdlr);
   vPrintString("vIgnitionNotification task created\n");
-
   xTaskCreate(vProtocolTask,"Protocol",configMINIMAL_STACK_SIZE + 20,NULL,tskIDLE_PRIORITY + 3,&protocol_hdlr);
   vPrintString("Protocol task created\n");
-  //xTaskCreate(vDoorTask,"Door",configMINIMAL_STACK_SIZE + 10,NULL,tskIDLE_PRIORITY + 3,&door_handler);
-
   vPrintString("Se crean las tareas\n");
 
 
