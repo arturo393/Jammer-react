@@ -59,11 +59,15 @@ static void vProtocolTask(void *pvParameters) {
     if(protocol && digitalRead(EnableDoorPin) == LOW){
       Serial.print("Enable Door!\n\r");
       for(int i = 0; i < 9; i++ ){
+        noInterrupts();
         digitalWrite(LedPin,LOW);
         digitalWrite(BuzzerPin,HIGH);
+        interrupts();
         vTaskDelay(configTICK_RATE_HZ);
+        noInterrupts();
         digitalWrite(LedPin,HIGH);
         digitalWrite(BuzzerPin,LOW);
+        interrupts();
         vTaskDelay(configTICK_RATE_HZ);
       }
       if(digitalRead(DoorPin) == LOW){
@@ -74,6 +78,7 @@ static void vProtocolTask(void *pvParameters) {
     if(protocol && digitalRead(DoorPin) == LOW){
     // if(protocol && digitalRead(DoorPin) == HIGH){
       xTaskNotify(cc_handler,( 1UL << 2UL ), eSetBits );
+      xTaskNotify(disable_handler,( 1UL << 1UL ), eSetBits );
       protocol = false;
     }
     if(protocol == false){
@@ -84,14 +89,46 @@ static void vProtocolTask(void *pvParameters) {
 
 //------------------------------------------------------------------------------
 static void vDisableTask(void *pvParameters) {
-attachInterrupt(digitalPinToInterrupt(CCDisable), CCInterrupt, CHANGE );
+//attachInterrupt(digitalPinToInterrupt(CCDisable), CCInterrupt, CHANGE );
+  uint32_t ulNotifiedValue = 0x01;
+  boolean _last_state = HIGH;
+  boolean _current_state = HIGH;
+  boolean _current_statei = LOW;
+  boolean _last_statei = LOW;
+
   for  (;;) {
-    vTaskSuspend( NULL );
-    if(digitalRead(CCDisable) == HIGH){ // desactiva el cc
-      xTaskNotify(cc_handler,( 1UL << 3UL ), eSetBits );
+  //  xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
+  //  0x00, /* Reset the notification value to 0 on exit. */
+  //  &ulNotifiedValue, /* Notified value pass out in
+  //  ulNotifiedValue. */
+  //  configTICK_RATE_HZ);  /* Block indefinitely. */
+
+    //if( ( ulNotifiedValue & 0x01 ) != 0 ){
+      vTaskDelay(configTICK_RATE_HZ);
+      _current_state = digitalRead(CCDisable);
+      if(_current_state != _last_state ){
+      Serial.println("Normal Disable");
+      if(_current_state == HIGH){ // desactiva el cc
+        xTaskNotify(cc_handler,( 1UL << 3UL ), eSetBits );
+      }
+      if(_current_state == LOW){ // se activa el cc
+        xTaskNotify(cc_handler,( 1UL << 4UL ), eSetBits );
+      }
+      _last_state = _current_state;
     }
-    if(digitalRead(CCDisable) == LOW){ // se activa el cc
-      xTaskNotify(cc_handler,( 1UL << 4UL ), eSetBits );
+//  }
+    if( ( ulNotifiedValue & 0x02 ) != 0 ){
+      _current_statei = digitalRead(CCDisable);
+      if(_current_statei != _last_state){
+        Serial.println("Inverted Disable");
+        if(digitalRead(CCDisable) == LOW){ // desactiva el cc
+        xTaskNotify(cc_handler,( 1UL << 3UL ), eSetBits );
+        ulNotifiedValue = 0x01;
+        }
+      if(digitalRead(CCDisable) == HIGH){ // se activa el cc
+        xTaskNotify(cc_handler,( 1UL << 4UL ), eSetBits );
+        }
+      }
     }
   }
 }
@@ -104,14 +141,14 @@ static void vIgnitionNotification(void *pvParameters) {
   int32_t c_engine_off = 0;
   int16_t c_notification = 0;
 
-  digitalWrite(EngineStatusPin,HIGH);
+//  digitalWrite(EngineStatusPin,HIGH);
 
   for  (;;) {
     vTaskDelay(configTICK_RATE_HZ);
     //if(digitalRead(IgnitionPin) == LOW || EngineDelay){
       if(digitalRead(IgnitionPin) == LOW){
       if(c_engine_on == 0){
-      digitalWrite(EngineStatusPin,LOW);
+    //  digitalWrite(EngineStatusPin,LOW);
       //Serial.print("Ignition on\n");
       }
       if(c_engine_on == TIME_AFTER_START){
@@ -126,7 +163,7 @@ static void vIgnitionNotification(void *pvParameters) {
     }
     else { // ENGINE OFF
       if(c_engine_off == 0){
-      digitalWrite(EngineStatusPin, HIGH);
+    //  digitalWrite(EngineStatusPin, HIGH);
       //Serial.print("Ignition off\n");
       }
       if(c_engine_off == TIME_AFTER_STOP){
@@ -207,6 +244,8 @@ uint32_t ulNotifiedValue = 0x00;
     if( ( ulNotifiedValue & 0x02 ) != 0 )
     {
 
+
+
       digitalWrite(SpeakerPin, HIGH);
       Serial.print("2 minutes Jammer detection ... so you have 2 minutes slow down\n\r");
 
@@ -280,9 +319,9 @@ if(taskYieldRequired == pdTRUE)
   //taskYIELD();
 //------------------------------------------------------------------------------
 void setup() {
-  //Serial.begin(9600);
+  Serial.begin(9600);
   // wait for Leonardo
-  //while(!Serial) {}
+  while(!Serial) {}
 
  Serial.print("Inicio del programa\n");
 
@@ -303,8 +342,8 @@ void setup() {
 
   pinMode(CCPin, OUTPUT);
   Serial.print("CCPin output\n");
-  pinMode(EngineStatusPin,OUTPUT);
-  Serial.print("EngineStatusPin out\n");
+  //pinMode(EngineStatusPin,OUTPUT);
+  //Serial.print("EngineStatusPin out\n");
   pinMode(SpeakerPin,OUTPUT);
   Serial.print("SpeakerPin out\n");
   pinMode(LedPin, OUTPUT);
@@ -322,6 +361,8 @@ void setup() {
   pinMode(CCDisable, INPUT_PULLUP);
   Serial.print("CCDisable input pullup\n");
   Serial.print("All task ara created!\n\n\n\r");
+
+  xTaskNotify(disable_handler,( 1UL << 0UL ), eSetBits );
   vTaskStartScheduler();
 
   // should never return
