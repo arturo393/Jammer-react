@@ -3,7 +3,8 @@
 #include <FreeRTOS_AVR.h>
 #include <Arduino.h>
 
-#define DEBUG 1
+//#define DEBUG 1
+
 // inputs
 #define CCDisable              2      // Enable/disable jamming detection HIGH = on & LOW = off
 #define IgnitionPin            3  // (with pull down resistor) Engine power HIGH = on & LOW = off
@@ -15,13 +16,14 @@
 #define LedPin                 9
 #define CCPin                  10    // Corta corriente HIGH = shutdown / LOW = normal
 #define BuzzerPin              14
-#define GeneralPin             15
+#define DoorPositivePin             15
 #define SpeakerPin             16
 
 #define TIME_AFTER_START       30
 #define TIME_AFTER_STOP        30
 #define DOOR_ENABLE_SECONDS    7
 #define NOTIFICATION_TIME      30
+#define TIME_AFTER_OPEN_DOOR   60 // secs after the door was opened
 
 TaskHandle_t cc_handler;
 TaskHandle_t jammer_handler;
@@ -42,7 +44,7 @@ static void vProtocolTask(void *pvParameters) {
     0xFF, /* Reset the notification value to 0 on exit. */
     &ulNotifiedValue, /* Notified value pass out in
     ulNotifiedValue. */
-    configTICK_RATE_HZ/3  );  /* Block indefinitely. */
+    configTICK_RATE_HZ  );  /* Block indefinitely. */
 
     if( ( ulNotifiedValue & 0x01 ) != 0 )
     {
@@ -58,7 +60,7 @@ static void vProtocolTask(void *pvParameters) {
     }
     if(protocol && digitalRead(EnableDoorPin) == LOW){
       Serial.print("Enable Door!\n\r");
-      for(int i = 0; i < 9; i++ ){
+      for(int i = 0; i < 7; i++ ){
         noInterrupts();
         digitalWrite(LedPin,LOW);
         digitalWrite(BuzzerPin,HIGH);
@@ -70,13 +72,20 @@ static void vProtocolTask(void *pvParameters) {
         interrupts();
         vTaskDelay(configTICK_RATE_HZ);
       }
-      if(digitalRead(DoorPin) == LOW){
+      if(digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW){
   //    if(digitalRead(DoorPin) == HIGH){
         protocol = false;
       }
     }
-    if(protocol && digitalRead(DoorPin) == LOW){
+    if(protocol && (digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW)){
     // if(protocol && digitalRead(DoorPin) == HIGH){
+      digitalWrite(LedPin, LOW);
+      for(int j = 0; j < TIME_AFTER_OPEN_DOOR ; j++){
+      Serial.print("CC on in ");
+      Serial.print(j);
+      Serial.println(" secs");
+      vTaskDelay(configTICK_RATE_HZ);
+    }
       xTaskNotify(cc_handler,( 1UL << 2UL ), eSetBits );
       xTaskNotify(disable_handler,( 1UL << 1UL ), eSetBits );
       protocol = false;
@@ -202,7 +211,7 @@ static void vJammingTask(void *pvParameters) {
 
     if(digitalRead(JamDetectionPin) == LOW){
       c_jammer++;
-      if(digitalRead(DoorPin) == LOW){
+      if(digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW){
         // se puede esperar un tiempo antes apagar el motor
         xTaskNotify(cc_handler,( 1UL << 0UL ), eSetBits );
         vTaskSuspend( NULL );
@@ -319,10 +328,12 @@ if(taskYieldRequired == pdTRUE)
   //taskYIELD();
 //------------------------------------------------------------------------------
 void setup() {
-  Serial.begin(9600);
-  // wait for Leonardo
-  while(!Serial) {}
 
+  #ifdef DEBUG
+//  Serial.begin(9600);
+  // wait for Leonardo
+//  while(!Serial) {}
+  #endif
  Serial.print("Inicio del programa\n");
 
 
@@ -356,6 +367,8 @@ void setup() {
   Serial.print("DoorPin input pullup\n");
   pinMode(JamDetectionPin, INPUT_PULLUP);
   Serial.print("JamDetectionPin input pullup\n");
+  pinMode((DoorPositivePin), INPUT_PULLUP);
+  Serial.print("DoorPositivePin, input pullup\n");
   pinMode(IgnitionPin, INPUT_PULLUP);
   Serial.print("IgnitionPin input pullup\n");
   pinMode(CCDisable, INPUT_PULLUP);
