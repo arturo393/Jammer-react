@@ -5,7 +5,7 @@
 #include <Arduino.h>
 
 #define DEBUG 1
-
+#define DOORSENSOR
 // inputs
 #define CCDisable              2      // Enable/disable jamming detection HIGH = on & LOW = off
 #define IgnitionPin            3  // (with pull down resistor) Engine power HIGH = on & LOW = off
@@ -48,6 +48,17 @@ static void vProtocolTask(void *pvParameters) {
     ulNotifiedValue. */
     configTICK_RATE_HZ  );  /* Block indefinitely. */
 
+    #ifndef DOORSENSOR
+    if(digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW){
+    #endif
+    #ifdef DOORSENSOR
+    if(digitalRead(DoorPin) == HIGH){
+    #endif
+      Serial.print("Door open\n");
+    } else {
+      Serial.print("Door closed\n");
+    }
+
     if( ( ulNotifiedValue & 0x01 ) != 0 )
     {
       Serial.print("Secure Protocol Started!\n");
@@ -74,13 +85,21 @@ static void vProtocolTask(void *pvParameters) {
         interrupts();
         vTaskDelay(configTICK_RATE_HZ);
       }
+      #ifndef DOORSENSOR
       if(digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW){
-  //    if(digitalRead(DoorPin) == HIGH){
+      #endif
+      #ifdef DOORSENSOR
+      if(digitalRead(DoorPin) == HIGH){
+      #endif
         protocol = false;
       }
     }
+    #ifndef DOORSENSOR
     if(protocol && (digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW)){
-    // if(protocol && digitalRead(DoorPin) == HIGH){
+    #endif
+    #ifdef DOORSENSOR
+     if(protocol && digitalRead(DoorPin) == HIGH){
+    #endif
       digitalWrite(LedPin, LOW);
       for(int j = 0; j < TIME_AFTER_OPEN_DOOR ; j++){
       Serial.print("CC on in ");
@@ -218,7 +237,12 @@ static void vJammingTask(void *pvParameters) {
 
     if(digitalRead(JamDetectionPin) == LOW){
       c_jammer++;
+      #ifndef DOORSENSOR
       if(digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW){
+      #endif
+      #ifdef DOORSENSOR
+      if(digitalRead(DoorPin) == HIGH){
+      #endif
         // se puede esperar un tiempo antes apagar el motor
         xTaskNotify(cc_handler,( 1UL << 0UL ), eSetBits );
         vTaskSuspend( NULL );
