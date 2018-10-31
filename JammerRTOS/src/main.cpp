@@ -4,8 +4,9 @@
 #include <FreeRTOS_AVR.h>
 #include <Arduino.h>
 
-#define DEBUG 1
-#define DOORSENSOR
+//#define DEBUG 1
+//#define DOORSENSOR
+
 // inputs
 #define CCDisable              2      // Enable/disable jamming detection HIGH = on & LOW = off
 #define IgnitionPin            3  // (with pull down resistor) Engine power HIGH = on & LOW = off
@@ -22,6 +23,8 @@
 
 #define TIME_AFTER_START       30
 #define TIME_AFTER_STOP        30
+#define TIME_TO_STOP_ENGINE   40
+#define TIME_TO_OPEN_DOOR      10
 #define DOOR_ENABLE_SECONDS    7
 #define NOTIFICATION_TIME      30
 #define TIME_AFTER_OPEN_DOOR   60 // secs after the door was opened
@@ -71,29 +74,55 @@ static void vProtocolTask(void *pvParameters) {
      digitalWrite(LedPin, LOW);
      protocol = false;
     }
+
+
     if(protocol && digitalRead(EnableDoorPin) == LOW){
       Serial.print("Enable Door!\n\r");
-      for(int i = 0; i < 7; i++ ){
-        noInterrupts();
-        digitalWrite(LedPin,LOW);
-        digitalWrite(BuzzerPin,HIGH);
-        interrupts();
-        vTaskDelay(configTICK_RATE_HZ);
-        noInterrupts();
+      for(int i = 0; i < TIME_TO_OPEN_DOOR; i++ ){
         digitalWrite(LedPin,HIGH);
+        digitalWrite(BuzzerPin,HIGH);
+        vTaskDelay(configTICK_RATE_HZ/100);
         digitalWrite(BuzzerPin,LOW);
-        interrupts();
+
+        digitalWrite(LedPin,LOW);
         vTaskDelay(configTICK_RATE_HZ);
-      }
+        digitalWrite(LedPin,HIGH);
+      } // end for
+
       #ifndef DOORSENSOR
-      if(digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW){
+        if(digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW){ // door open
       #endif
       #ifdef DOORSENSOR
-      if(digitalRead(DoorPin) == HIGH){
+        if(digitalRead(DoorPin) == HIGH){  // door open
       #endif
-        protocol = false;
-      }
-    }
+
+          Serial.print("Shutdown the engine or  ");
+            for(int j = 0; j < TIME_TO_STOP_ENGINE; j++){
+              Serial.print(j);
+              Serial.print(" ");
+              digitalWrite(LedPin,HIGH);
+              digitalWrite(BuzzerPin,HIGH);
+              vTaskDelay(configTICK_RATE_HZ/100);
+              digitalWrite(BuzzerPin,LOW);
+
+              digitalWrite(LedPin,LOW);
+              vTaskDelay(configTICK_RATE_HZ/2);
+              digitalWrite(LedPin,HIGH);
+              #ifndef DOORSENSOR
+                if(digitalRead(DoorPin) == HIGH && digitalRead(DoorPositivePin) == HIGH){
+              #endif
+              #ifdef DOORSENSOR
+                if(digitalRead(DoorPin) == LOW){
+              #endif
+                j = TIME_TO_STOP_ENGINE;
+                Serial.print("Secure Protocol Started!\n");
+                digitalWrite(LedPin,HIGH);
+
+                }
+            } // end for
+        } // end if door open
+    } // end if button pressed
+
     #ifndef DOORSENSOR
     if(protocol && (digitalRead(DoorPin) == LOW || digitalRead(DoorPositivePin) == LOW)){
     #endif
@@ -101,22 +130,28 @@ static void vProtocolTask(void *pvParameters) {
      if(protocol && digitalRead(DoorPin) == HIGH){
     #endif
       digitalWrite(LedPin, LOW);
-      for(int j = 0; j < TIME_AFTER_OPEN_DOOR ; j++){
+      protocol = false;
+      Serial.print("Secure Protocol Stoped!\n");
       Serial.print("CC on in ");
+      for(int j = 0; j < TIME_AFTER_OPEN_DOOR ; j++){
       Serial.print(j);
-      Serial.println(" secs");
+      Serial.print(" ");
       vTaskDelay(configTICK_RATE_HZ);
       digitalWrite(LedPin,HIGH);
       vTaskDelay(configTICK_RATE_HZ/20);
       digitalWrite(LedPin,LOW);
-    }
+      }
+      Serial.println();
       xTaskNotify(cc_handler,( 1UL << 2UL ), eSetBits );
       xTaskNotify(disable_handler,( 1UL << 1UL ), eSetBits );
-      protocol = false;
+    //  xTaskNotify(ignition_handler,( 1UL << 1UL ), eSetBits );
+
+  //    protocol = false;
     }
-    if(protocol == false){
-      digitalWrite(LedPin,LOW);
-    }
+  //  if(protocol == false){
+  //    Serial.print("Secure Protocol Stoped!\n");
+  //    digitalWrite(LedPin,LOW);
+  //  }
   }
 }
 
@@ -347,7 +382,7 @@ uint32_t ulNotifiedValue = 0x00;
 unsigned long _time = 0;
 unsigned long _last_time = 0;
 
-
+/*
 void CCInterrupt() {
    BaseType_t taskYieldRequired = 0;
   taskYieldRequired = xTaskResumeFromISR( disable_handler );
@@ -357,7 +392,7 @@ if(taskYieldRequired == pdTRUE)
   //if( xYieldRequired == pdTRUE )
   //taskYIELD();
 //------------------------------------------------------------------------------
-
+*/
 void setup() {
 
   #ifdef DEBUG
