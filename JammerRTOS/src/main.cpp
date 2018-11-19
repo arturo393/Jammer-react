@@ -1,11 +1,13 @@
 // Simple demo of three threads
 // LED blink thread, print thread, and idle loop
+#include <Arduino.h>
 //#include <Arduino_FreeRTOS.h>
 #include <FreeRTOS_AVR.h>
-#include <Arduino.h>
 
-//#define DEBUG 1
+
+#define DEBUG 1
 //#define DOORSENSOR
+
 
 // inputs
 #define CCDisable              2      // Enable/disable jamming detection HIGH = on & LOW = off
@@ -36,7 +38,6 @@ TaskHandle_t jammer_handler;
 TaskHandle_t disable_handler;
 TaskHandle_t protocol_hdlr;
 TaskHandle_t ignition_hdlr;
-
 
 static void vProtocolTask(void *pvParameters) {
 
@@ -378,6 +379,52 @@ uint32_t ulNotifiedValue = 0x00;
   }
 }
 //---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+static void vPasswordTask(void *pvParameters) {
+//String temp;
+char val[20];
+char val2;
+char password[20] = "jaime";
+boolean nopass = false;
+int i = 0;
+
+  for  (;;) {
+
+    while(Serial1.available()){
+      val2 = Serial1.read();
+      if (val2 != '\r' && val2 != '\n'){
+        val[i] = val2;
+        if(val2 != password[i])
+         nopass = true;
+          //    Serial.print("EERROR");
+        i++;
+      }
+      vTaskDelay(configTICK_RATE_HZ/10);
+    }
+
+  //  if(i > 0){
+
+      if (nopass){
+    //    vTaskDelay(configTICK_RATE_HZ/5);
+    //   Serial.println("nopass");
+        nopass = false;
+      }
+      //else {
+    //    vTaskDelay(configTICK_RATE_HZ/5);
+    //    Serial.println("correct");
+    //  }
+  //}
+/*
+      if (strcmp (val,password) == 0){
+        Serial.println("Correct answer!");
+      }
+*/
+      i = 0;
+
+
+  }
+}
+
 //---------------------------------------------------------------------
 unsigned long _time = 0;
 unsigned long _last_time = 0;
@@ -398,10 +445,10 @@ void setup() {
   #ifdef DEBUG
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
-//  Serial1.begin(4800);
+  Serial1.begin(9600);
   while (!Serial) {
-//    ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
-  }
+  ; // wait for serial port to connect. Needed for native USB
+}
   #endif
 
   xTaskCreate(vDisableTask,"Disable",configMINIMAL_STACK_SIZE + 5,NULL,tskIDLE_PRIORITY + 2,&disable_handler);
@@ -409,6 +456,7 @@ void setup() {
   xTaskCreate(vJammingTask,"Jamming",configMINIMAL_STACK_SIZE + 20, NULL, tskIDLE_PRIORITY + 1, &jammer_handler);
   xTaskCreate(vIgnitionNotification,"Ignition",configMINIMAL_STACK_SIZE + 50,NULL,tskIDLE_PRIORITY + 3,&ignition_hdlr);
   xTaskCreate(vProtocolTask,"Protocol",configMINIMAL_STACK_SIZE + 20,NULL,tskIDLE_PRIORITY + 3,&protocol_hdlr);
+  //xTaskCreate(vPasswordTask,"Password",configMINIMAL_STACK_SIZE + 20,NULL,tskIDLE_PRIORITY + 3,NULL);
 
   pinMode(CCPin, OUTPUT);
   //pinMode(EngineStatusPin,OUTPUT);
@@ -425,11 +473,11 @@ void setup() {
   pinMode(CCDisable, INPUT_PULLUP);
   xTaskNotify(disable_handler,( 1UL << 0UL ), eSetBits );
 
-  vTaskStartScheduler();
+  //vTaskStartScheduler();
 
   // should never return
-  Serial.println(F("Die"));
-  while(1);
+  //Serial.println(F("Die"));
+  //while(1);
   }
 
   //------------------------------------------------------------------------------
