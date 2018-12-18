@@ -1,14 +1,16 @@
+
+
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
 #include <avr/wdt.h>
 #include <EEPROM.h>
 
-#define DEBUG 1
+//#define DEBUG 1
 //#define PRINT_DOORSTATUS
 //#define PRINT_PROTOCOL_STATUS
 //#define PRINT_IGNITION_STATUS
 //#define PRINT_JAMMING_STATUS
-#define PRINT_PASSWORD_STATUS
+//#define PRINT_PASSWORD_STATUS
 //#define PRINT_CC_STATUS
 //#define PRINT_DISABLE_STATUS
 
@@ -53,15 +55,15 @@
 #define TIME_TO_OPEN_DOOR      30
 #define DOOR_ENABLE_SECONDS    7
 #define NOTIFICATION_TIME      30
-#define TIME_AFTER_OPEN_DOOR   60 // secs after the door was opened
+#define TIME_AFTER_OPEN_DOOR   30 // secs after the door was opened
 #define TIME_JAMMING_SECURE    120
 #define TIME_JAMMING_HANG      30*SECS_PER_MIN
 #define TIME_JAMMING_AFTER_SECURE 120
 
 #define PASSLENGTH 6
 #define DEVICE_ID              001
-#define BAUDRATE_NORMAL        9600
-#define BAUDRATE_AT            38400
+//define BAUDRATE               38400
+#define BAUDRATE               9600
 
 /** the current address in the EEPROM (i.e. which byte we're going to write to next) **/
 int address = 0;
@@ -82,7 +84,7 @@ int checkPinStatus(uint8_t _pin, uint8_t lastButtonState);
 void suspendTasks();
 void keyGenerator(char * _temp);
 int8_t readSerialBluetooth(char *_reading);
-int8_t bluetoothInit(int32_t _baudRate );
+int8_t bluetoothInit( );
 int8_t sendATCmd(char _cmd[],char *_response);
 
 
@@ -266,11 +268,11 @@ static void vProtocolTask(void *pvParameters)
           Serial.print(" ");
         }
         #endif
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(500));
         digitalWrite(LedPin,HIGH);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(500));
         digitalWrite(LedPin,LOW);
-        }
+      }
 
         digitalWrite(LedPin,LOW);
         #ifdef PRINT_PROTOCOL_STATUS
@@ -628,13 +630,16 @@ static void vPasswordTask(void *pvParameters) {
 
   bool suspend         = false;          /* bluetooth suspended state */
   char readingString[10];              /* reading string from bluetooth */
-  int8_t _id = 0;                      /* local store for ID device */
+  char _id = 20;                      /* local store for ID device */
 
   #ifdef PASSWORD_FREE_BYTES
   UBaseType_t uxHighWaterMark;
   #endif
 
-  if(bluetoothInit(BAUDRATE_AT) == 0)
+  if(BAUDRATE == 38400)
+    bluetoothInit();
+  else
+    Serial1.begin(9600);
 
   //Serial1.begin(9600);
 
@@ -646,9 +651,6 @@ static void vPasswordTask(void *pvParameters) {
     Serial.println(uxHighWaterMark);
     vTaskDelay(pdMS_TO_TICKS(5000));
     #endif
-
-
-
 
     vTaskDelay(configTICK_RATE_HZ);
 
@@ -664,9 +666,15 @@ static void vPasswordTask(void *pvParameters) {
       else
         if(strcmp("auth", readingString) == 0)
         {
-          _id = EEPROM.read(address);
-          Serial1.print("ID: ");
-          Serial1.println(_id );
+          _id = 'a';
+          address = 0;
+          Serial1.println("ID: ");
+          while (_id != NULL)
+          {
+            _id = EEPROM.read(address++);
+            Serial1.print(_id);
+          }
+          Serial1.println();
         }
         else
           if(strcmp("restart", readingString) == 0)
@@ -944,24 +952,26 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName 
 //------------------------------------------------------------------------------
 /* Set the initial baudrate for sendig an AT command, then restore dthe baudrate
  * for normal bluetooth operation */
-int8_t bluetoothInit(int32_t _baudRate )
+int8_t bluetoothInit( )
 {
   int16_t check;
   char response[20];
-  Serial1.begin(BAUDRATE_AT);
+  Serial1.begin(BAUDRATE);
   int8_t i = 0;
   char val;
   char * id;
   bool _done = false;
+  TickType_t xTime1 = xTaskGetTickCount();
 
 
-
+  #ifdef PRINT_PASSWORD_STATUS
   Serial.println("AT+ADDR?");
+  #endif
+
   Serial1.println("AT+ADDR?");
 
-    while(!_done)
+    while(!_done )
     {
-
     if(Serial1.available())
     {
 
@@ -969,7 +979,9 @@ int8_t bluetoothInit(int32_t _baudRate )
       val = Serial1.read();
       if (val != '\r' && val != '\n')
       {
+        #ifdef PRINT_PASSWORD_STATUS
         Serial.print(val);
+        #endif
         response[i] = val;
         i++;
       }
@@ -981,34 +993,46 @@ int8_t bluetoothInit(int32_t _baudRate )
         response[i] = NULL;
         i = 0;
         val = '\r';
+
+        #ifdef PRINT_PASSWORD_STATUS
         Serial.print("\nNew String: ");
         Serial.print(response);
+        #endif
 
         /* check the string saved */
         if(strcmp(response, "OK")==0)
         {
+          #ifdef PRINT_PASSWORD_STATUS
           Serial.println("\tfinish response");
+          #endif
           _done = true;
         }
         else
         {
           if(strcmp(response,"ERROR:(0)")==0)
           {
+            #ifdef PRINT_PASSWORD_STATUS
             Serial.println("\tSend Again");
+            #endif
+            Serial1.println("AT+ADDR?");
           }
           else
           {
-            Serial.print("\tNew ID: Safecar:");
-
+            #ifdef PRINT_PASSWORD_STATUS
+            Serial.print("\tNew ID: Safecar:\n");
+            #endif
             id = strrchr(response,':');
-            for(int i = 1; i<strlen(id) ; i ++)
+
+            for(int i = 1; i<=strlen(id) ; i ++)
             {
-              EEPROM.update(address, id[i]);
-              Serial.print(id[i]);
+
+              EEPROM.update(address+i-1, id[i]);
+              #ifdef PRINT_PASSWORD_STATUS
+              Serial.print(address+i-1);
+              Serial.print("     ");
+              Serial.println(id[i]);
+              #endif
             }
-
-              Serial.println();
-
           }
         }
 
@@ -1020,11 +1044,16 @@ int8_t bluetoothInit(int32_t _baudRate )
   val = '0';
   char sbuff[40];
 
-  vTaskDelay(pdMS_TO_TICKS(1000));
+  vTaskDelay(pdMS_TO_TICKS(500));
 
   sprintf(sbuff,"AT+NAME=SAFECAR_%s",id+1);
-  Serial.println(sbuff);
   Serial1.println(sbuff);
+
+  #ifdef PRINT_PASSWORD_STATUS
+  Serial.println(sbuff);
+  #endif
+
+  xTime1 = xTaskGetTickCount();
 
   while(!_done)
   {
@@ -1035,7 +1064,9 @@ int8_t bluetoothInit(int32_t _baudRate )
     val = Serial1.read();
     if (val != '\r' && val != '\n')
     {
+      #ifdef PRINT_PASSWORD_STATUS
       Serial.print(val);
+      #endif
       response[i] = val;
       i++;
     }
@@ -1047,36 +1078,52 @@ int8_t bluetoothInit(int32_t _baudRate )
       response[i] = NULL;
       i = 0;
       val = '\r';
+
+      #ifdef PRINT_PASSWORD_STATUS
       Serial.print("\nNew String: ");
       Serial.print(response);
+      #endif
 
       /* check the string saved */
       if(strcmp(response, "OK")==0)
       {
+        #ifdef PRINT_PASSWORD_STATUS
         Serial.println("\tfinish response");
+        #endif
         _done = true;
       }
       else
       {
         if(strcmp(response,"ERROR:(0)")==0)
         {
+          #ifdef PRINT_PASSWORD_STATUS
           Serial.println("\tSend Again");
+          #endif
           Serial1.println(sbuff);
         }
         else
         {
+          #ifdef PRINT_PASSWORD_STATUS
           Serial.print("\tNew NAME: ");
+          #endif
           Serial.println(response);
           }
       }
     }
   }
   }
+  for(int k = 0; k<4 ; k++)
+  {
+    digitalWrite(BuzzerPin, HIGH);
+    vTaskDelay(pdMS_TO_TICKS(50));
+    digitalWrite(BuzzerPin, LOW);
+    vTaskDelay(pdMS_TO_TICKS(50));
 
-  Serial1.println("AT+RESET");
+  }
+  #ifdef PRINT_PASSWORD_STATUS
   Serial.println("ready for use");
-
-  Serial1.begin(BAUDRATE_NORMAL);
+  #endif
+  Serial1.begin(9600);
   return 0;
 }
 
