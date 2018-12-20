@@ -1,5 +1,3 @@
-
-
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
 #include <avr/wdt.h>
@@ -55,10 +53,16 @@
 #define TIME_TO_OPEN_DOOR      30
 #define DOOR_ENABLE_SECONDS    7
 #define NOTIFICATION_TIME      30
-#define TIME_AFTER_OPEN_DOOR   30 // secs after the door was opened
+#define TIME_AFTER_OPEN_DOOR   60 // secs after the door was opened
 #define TIME_JAMMING_SECURE    120
 #define TIME_JAMMING_HANG      30*SECS_PER_MIN
 #define TIME_JAMMING_AFTER_SECURE 120
+
+#define NORMAL_STATE   1        /* cirtcuit normal state */
+#define BLOCKED_STATE  2        /* CC avtivated sate */
+#define SUSPEND_STATE  3        /* CC deactivated and all the task suspended */
+
+int stateAddress = 20;
 
 #define PASSLENGTH 6
 #define DEVICE_ID              001
@@ -81,12 +85,15 @@ TaskHandle_t passwd_handler;
 void time(long val);
 void printDigits(byte digits);
 int checkPinStatus(uint8_t _pin, uint8_t lastButtonState);
-void suspendTasks();
+
 void keyGenerator(char * _temp);
 int8_t readSerialBluetooth(char *_reading);
 int8_t bluetoothInit( );
 int8_t sendATCmd(char _cmd[],char *_response);
 
+void suspendOperationalTasks();
+void restartHW();
+void suspendTasks();
 
 static void vProtocolTask(void *pvParameters);
 static void vDisableTask(void *pvParameters);
@@ -113,16 +120,14 @@ void setup() {
   }
   #endif
 
-
-
   wdt_enable(WDTO_4S);
 
-  xTaskCreate(vDisableTask,"Disable",configMINIMAL_STACK_SIZE+50,NULL,tskIDLE_PRIORITY,&disable_handler);
+  xTaskCreate(vDisableTask,"Disable",configMINIMAL_STACK_SIZE+50+20,NULL,tskIDLE_PRIORITY,&disable_handler);
   xTaskCreate(vCCTask,"CC",configMINIMAL_STACK_SIZE+62-32+10, NULL, tskIDLE_PRIORITY,&cc_handler);
   xTaskCreate(vIgnitionNotification,"Ignition",configMINIMAL_STACK_SIZE+31,NULL,tskIDLE_PRIORITY,&ignition_handler);
   xTaskCreate(vProtocolTask,"Protocol",configMINIMAL_STACK_SIZE+40,NULL,tskIDLE_PRIORITY,&protocol_handler);
   xTaskCreate(vJammingTask,"Jamming",configMINIMAL_STACK_SIZE+40, NULL, tskIDLE_PRIORITY , &jammer_handler);
-  xTaskCreate(vPasswordTask,"Password",configMINIMAL_STACK_SIZE+80, NULL, tskIDLE_PRIORITY ,&passwd_handler);
+  //xTaskCreate(vPasswordTask,"Password",configMINIMAL_STACK_SIZE+80, NULL, tskIDLE_PRIORITY ,&passwd_handler);
   xTaskCreate(vDoorStatusCheckTask,"Doorpos",configMINIMAL_STACK_SIZE+40, NULL, tskIDLE_PRIORITY ,&door_handler);
 
   pinMode(NotifyPin,OUTPUT);
@@ -135,7 +140,6 @@ void setup() {
   pinMode(DoorPositivePin, INPUT_PULLUP);
   pinMode(IgnitionPin, INPUT_PULLUP);
   pinMode(CCDisable, INPUT_PULLUP);
-  pinMode(NotifyPin,OUTPUT);
 
 }
 
@@ -158,8 +162,8 @@ static void vProtocolTask(void *pvParameters)
   UBaseType_t uxHighWaterMark;
   #endif                   /* counter for displaying one time */
 
-
-  for(;;) {
+  for(;;)
+   {
 
     #ifdef PROTOCOL_FREE_BYTES
     Serial.print("ProtocolFreeWords ");
@@ -202,6 +206,7 @@ static void vProtocolTask(void *pvParameters)
         Serial.print(TIME_TO_OPEN_DOOR);
         Serial.print(" seconds ");
         #endif
+
         /* send disable door open detection notification*/
         xTaskNotify(door_handler,0x01, eSetValueWithOverwrite);
         int ecount = 0;      /* EnableDoorPin counter */
@@ -224,16 +229,13 @@ static void vProtocolTask(void *pvParameters)
           vTaskDelay(pdMS_TO_TICKS(1000));
           i++;
           /* if button is pressed , add 20 seconds more to te suspended task*/
-          if( (digitalRead(EnableDoorPin) == LOW) && (ecount <= 50 ) )
-              ecount += 10;
+          if( (digitalRead(EnableDoorPin) == LOW) && (ecount <= 60 ) )
+              ecount += 20;
 
           } while(i < (TIME_TO_OPEN_DOOR + ecount) );
 
           /* send disable door open detection notification*/
           xTaskNotify(door_handler,0x00, eSetValueWithOverwrite);
-
-        //  xTaskNotify(dneg_handler,0x00, eSetValueWithOverwrite);
-        //  xTaskNotify(dpos_handler,0x00, eSetValueWithOverwrite);
           #ifdef PRINT_PROTOCOL_STATUS
           Serial.println("vProtocolTask Resumed ");
           #endif
@@ -292,16 +294,11 @@ static void vProtocolTask(void *pvParameters)
  * door notification and jamming detection */
 static void vDisableTask(void *pvParameters)
  {
-
   bool _last_state     = HIGH;              /* CCDisable pin last state*/
   bool _reading_state  = HIGH;              /* CCDisable pin reading state */
   bool _current_state  = HIGH;              /* CCDisable pin current state */
-
   bool suspendState    = false;             /* button suspended state */
   bool checkState      = false;
-
-
-
   int i = 0;
   TickType_t xTimeLow;
   int16_t lastDebounceTime = 0;                 /* the last time the EnableDoorPin pin was toggled */
@@ -310,11 +307,52 @@ static void vDisableTask(void *pvParameters)
   int16_t ecount = 0;                           /*counter for EnableDoorPin on*/
   int16_t elimit  = 0;                          /* limit for vCCTask notfiication*/
 
-  #ifdef DISABLE_FREE_BYTES
+  bool suspend         = false;          /* bluetooth suspended state */
+  char readingString[10];              /* reading string from bluetooth */
+  char _id = 20;                      /* local store for ID device */
+
+  #ifdef PASSWORD_FREE_BYTES
   UBaseType_t uxHighWaterMark;
   #endif
 
+  if(BAUDRATE == 38400)
+    bluetoothInit();
+  else
+    Serial1.begin(9600);
+
+    int8_t savedState = EEPROM.read(stateAddress);
+
   for  (;;) {
+
+
+    if( savedState  == NORMAL_STATE )
+      {
+        xTaskNotify(cc_handler,0x01, eSetValueWithOverwrite );
+        savedState = 0;
+      }
+    else
+      if(savedState == SUSPEND_STATE)
+      {
+        xTaskNotify(cc_handler,0x04, eSetValueWithOverwrite );
+        savedState = 0;
+      }
+
+      else
+        if(savedState == BLOCKED_STATE)
+        {
+          xTaskNotify(cc_handler,0x03, eSetValueWithOverwrite );
+          savedState = 0;
+        }
+        else
+        {
+          #ifdef PRINT_DISABLE_STATUS
+          Serial.println("undefined state");
+          #endif
+          savedState = 0;
+        }
+
+
+
 
     #ifdef DISABLE_FREE_BYTES
     Serial.print("DisableFreeWords ");
@@ -329,44 +367,29 @@ static void vDisableTask(void *pvParameters)
     /* repeat while button is pressed */
     while(digitalRead(EnableDoorPin) == LOW)
     {
-    #ifdef PRINT_DISABLE_STATUS
-    if((elimit-ecount) % 20  == 0){
+     #ifdef PRINT_DISABLE_STATUS
+     if((elimit-ecount) % 20  == 0)
+     {
       Serial.print(elimit-ecount);
       Serial.print(" ");
-    }
-    #endif
+     }
+     #endif
     /* when reach the limit */
     if(ecount == elimit)
     {
       /* if already suspended */
-      if (suspendState)
+      if (EEPROM.read(stateAddress) == SUSPEND_STATE)
       {
-
-        #ifdef PRINT_DISABLE_STATUS
-        Serial.println("Resumed");
-        #endif
-        digitalWrite(BuzzerPin, HIGH);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        digitalWrite(BuzzerPin, LOW);
-        vTaskDelay(pdMS_TO_TICKS(100));
-        digitalWrite(BuzzerPin, HIGH);
-        vTaskDelay(pdMS_TO_TICKS(50));
-        digitalWrite(BuzzerPin, LOW);
-        /* resume vCCTask if suspedend */
         vTaskResume(cc_handler);
-        vTaskDelay(pdMS_TO_TICKS(500));
-        /* send vCCTask  System restart notification */
-        xTaskNotify(cc_handler,0x10, eSetValueWithOverwrite );
+        xTaskNotify(cc_handler,0x01, eSetValueWithOverwrite );
+        Serial1.println("AJ - Resumed");
+        ecount = 0;
       }
       /* if not suspended */
       else
       {
-        #ifdef PRINT_DISABLE_STATUS
-        Serial.println("Suspended");
-        #endif
-        digitalWrite(BuzzerPin, HIGH);
-        suspendTasks();
-        suspendState = true;
+        xTaskNotify(cc_handler,0x04, eSetValueWithOverwrite );
+        Serial1.println("AJ - Suspended");
         ecount = 0;
       }
     }
@@ -403,7 +426,7 @@ static void vDisableTask(void *pvParameters)
       if(_current_state == HIGH)
       {
         /* send CC OFF notification */
-        xTaskNotify(cc_handler,0x01, eSetValueWithOverwrite );
+        xTaskNotify(cc_handler,0x10, eSetValueWithOverwrite );
         #ifdef PRINT_DISABLE_STATUS
         Serial.println("CC OFF by SAFECAR");
         #endif
@@ -420,6 +443,59 @@ static void vDisableTask(void *pvParameters)
     } /* end if any change */
   } /* end if change after debounceDelay */
   _last_state = _reading_state;
+
+
+
+      if (readSerialBluetooth(readingString) > 0)
+      {
+        Serial1.println(readingString);
+
+        if (strcmp("suspend",readingString) == 0)
+          {
+              xTaskNotify(cc_handler,0x04, eSetValueWithOverwrite );
+              Serial1.println("AJ - Suspended");
+          }
+        else
+          if(strcmp("auth", readingString) == 0)
+          {
+            _id = 'a';
+            address = 0;
+            Serial1.println("ID: ");
+            while (_id != NULL)
+            {
+              _id = EEPROM.read(address++);
+              Serial1.print(_id);
+            }
+            Serial1.println();
+          }
+          else
+            if(strcmp("rstHW", readingString) == 0)
+            {
+              for(int i=0 ; i<2 ; i++)
+              {
+                digitalWrite(BuzzerPin, HIGH);
+                vTaskDelay(pdMS_TO_TICKS(50));
+                digitalWrite(BuzzerPin, LOW);
+                vTaskDelay(pdMS_TO_TICKS(100));
+              }
+              restartHW();
+            }
+            else
+              if(strcmp("rstState", readingString) == 0)
+              {
+                for(int i=0 ; i<3 ; i++)
+                {
+                  digitalWrite(BuzzerPin, HIGH);
+                  vTaskDelay(pdMS_TO_TICKS(50));
+                  digitalWrite(BuzzerPin, LOW);
+                  vTaskDelay(pdMS_TO_TICKS(100));
+                }
+                EEPROM.update(stateAddress, NORMAL_STATE);
+                restartHW();
+              }
+              else
+                Serial1.println("No command available");
+      }
 
   } /* end for (;;) */
 }
@@ -585,18 +661,7 @@ static void vJammingTask(void *pvParameters) {
       {
         /* Notify vCCTask OFF because jammer is hanged */
         xTaskNotify(cc_handler,0x01, eSetValueWithOverwrite );
-
-//        #ifdef PRINT_JAMMING_STATUS
-//        Serial.println("vJammingTask Suspended 10min ");
-//        #endif
-//        /* Suspend jamming detection for 10 minutes */
-//        for (int i ; i < (10*60) ; i++)
-//          vTaskDelay(pdMS_TO_TICKS(1000));
-//          #ifdef PRINT_JAMMING_STATUS
-//          Serial.println("vJammingTask Resumed");
-//          #endif
-
-      }
+    }
       #ifdef PRINT_JAMMING_STATUS
         Serial.print("Jammer detected ");
         time(c_jammer);
@@ -641,8 +706,6 @@ static void vPasswordTask(void *pvParameters) {
   else
     Serial1.begin(9600);
 
-  //Serial1.begin(9600);
-
   for (;;) {
 
     #ifdef PASSWORD_FREE_BYTES
@@ -651,7 +714,6 @@ static void vPasswordTask(void *pvParameters) {
     Serial.println(uxHighWaterMark);
     vTaskDelay(pdMS_TO_TICKS(5000));
     #endif
-
     vTaskDelay(configTICK_RATE_HZ);
 
     if (readSerialBluetooth(readingString) > 0)
@@ -660,7 +722,7 @@ static void vPasswordTask(void *pvParameters) {
 
       if (strcmp("suspend",readingString) == 0)
         {
-            suspendTasks();
+            xTaskNotify(cc_handler,0x04, eSetValueWithOverwrite );
             Serial1.println("AJ - Suspended");
         }
       else
@@ -677,26 +739,32 @@ static void vPasswordTask(void *pvParameters) {
           Serial1.println();
         }
         else
-          if(strcmp("restart", readingString) == 0)
+          if(strcmp("rstHW", readingString) == 0)
           {
-            digitalWrite(BuzzerPin, HIGH);
-            vTaskDelay(pdMS_TO_TICKS(50));
-            digitalWrite(BuzzerPin, LOW);
-            vTaskDelay(pdMS_TO_TICKS(100));
-            digitalWrite(BuzzerPin, HIGH);
-            vTaskDelay(pdMS_TO_TICKS(50));
-            digitalWrite(BuzzerPin, LOW);
-            /* resume vCCTask if suspedend */
-            vTaskResume(cc_handler);
-            vTaskDelay(pdMS_TO_TICKS(500));
-            /* send vCCTask  System restart notification */
-            Serial1.println("System will be restarted");
-            xTaskNotify(cc_handler,0x10, eSetValueWithOverwrite );
+            for(int i=0 ; i<2 ; i++)
+            {
+              digitalWrite(BuzzerPin, HIGH);
+              vTaskDelay(pdMS_TO_TICKS(50));
+              digitalWrite(BuzzerPin, LOW);
+              vTaskDelay(pdMS_TO_TICKS(100));
+            }
+            restartHW();
           }
           else
-          {
-            Serial1.println("No command available");
-          }
+            if(strcmp("rstState", readingString) == 0)
+            {
+              for(int i=0 ; i<3 ; i++)
+              {
+                digitalWrite(BuzzerPin, HIGH);
+                vTaskDelay(pdMS_TO_TICKS(50));
+                digitalWrite(BuzzerPin, LOW);
+                vTaskDelay(pdMS_TO_TICKS(100));
+              }
+              EEPROM.update(stateAddress, NORMAL_STATE);
+              restartHW();
+            }
+            else
+              Serial1.println("No command available");
     }
   }
 }
@@ -854,87 +922,113 @@ static void vDoorStatusCheckTask(void *pvParameters)
 //------------------------------------------------------------------------------
 /* This task recieve notifications from other task to activate / deactivate the CC
 *  and restart the MCU by hardware */
-static void vCCTask(void *pvParameters) {
-  uint32_t ulNotifiedValue = 0x00;
+static void vCCTask(void *pvParameters)
+{
+
   TickType_t xFrequency = pdMS_TO_TICKS(10);
+  uint32_t ulNotifiedValue = 0x00;
+
   #ifdef CC_FREE_BYTES
   UBaseType_t uxHighWaterMark;
   #endif
 
-  for (;;) {
+  for (;;)
+   {
 
-    #ifdef CC_FREE_BYTES
-    Serial.print("CCFreeWords ");
-    uxHighWaterMark = uxTaskGetStackHighWaterMark(cc_handler);
-    Serial.println(uxHighWaterMark);
-    vTaskDelay(pdMS_TO_TICKS(5000));
-    #endif
+     #ifdef CC_FREE_BYTES
+     Serial.print("CCFreeWords ");
+     uxHighWaterMark = uxTaskGetStackHighWaterMark(cc_handler);
+     Serial.println(uxHighWaterMark);
+     vTaskDelay(pdMS_TO_TICKS(5000));
+     #endif
 
+     xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
+     0xFF, /* Reset the notification value to 0 on exit. */
+     &ulNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
+     xFrequency  );  /* Block indefinitely. */
 
-      xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
-      0xFF, /* Reset the notification value to 0 on exit. */
-      &ulNotifiedValue, /* Notified value pass out in
-      ulNotifiedValue. */
-      xFrequency  );  /* Block indefinitely. */
-
-
-      /* Deactivate CC with CCPin */
-      if( ( ulNotifiedValue == 0x01 ) )
+     /* Deactivate CC with CCPin */
+     if( ( ulNotifiedValue == 0x01 ) )
       {
-          digitalWrite(CCPin, LOW);
-          #ifdef PRINT_CC_STATUS
-          Serial.println("CC = OFF blocked");
-          #endif
+        vTaskResume(ignition_handler);
+        vTaskResume(protocol_handler);
+        vTaskResume(door_handler);
+        vTaskResume(jammer_handler);
+        digitalWrite(CCPin, LOW);
+        EEPROM.update(stateAddress, NORMAL_STATE);
+
+        #ifdef PRINT_CC_STATUS
+        Serial.print("Resumed JammingTask ProtolTask IgnitionTask DoorNotificationTask\t");
+        Serial.println("CC = OFF Normal");
+        #endif
       }
 
-      /* Activate CC with digital CCPin in a On/Off secuence */
-      if( ( ulNotifiedValue == 0x02 ))
+     /* Activate CC with digital CCPin in a On/Off secuence */
+     if( ( ulNotifiedValue == 0x02 ))
       {
-        TickType_t xFrequency = pdMS_TO_TICKS(1000);
-        for(int i = 0 ; i < 3 ; i++)
+        suspendOperationalTasks();
+        for (int j = 0; j  < 2 ; j++ )
         {
+          /* turn on for 2 seconds */
           digitalWrite(CCPin, HIGH);
-          vTaskDelay(xFrequency);
-        }
-        for(int i = 0 ; i < 20 ; i++)
-        {
+          vTaskDelay(pdMS_TO_TICKS(2000));
+          /* turn off for 20 seconds */
           digitalWrite(CCPin, LOW);
-          vTaskDelay(xFrequency);
+          vTaskDelay(pdMS_TO_TICKS(20000));
         }
-        for(int i = 0 ; i < 3 ; i++)
-        {
-          digitalWrite(CCPin, HIGH);
-          vTaskDelay(xFrequency);
-        }
-        for(int i = 0 ; i < 20 ; i++)
-        {
-          digitalWrite(CCPin, LOW);
-          vTaskDelay(xFrequency);
-        }
+        /* finally turn off */
         digitalWrite(CCPin, HIGH);
+        /* update state of the coda */
+        EEPROM.update(stateAddress, BLOCKED_STATE);
         #ifdef PRINT_CC_STATUS
-        Serial.println("CC = ON");
-        #endif
-      } /* end deactivation */
-
-      /* Activate CC with digital CCPin */
-      if( ( ulNotifiedValue == 0x03) )
-      {
-        #ifdef PRINT_CC_STATUS
+        Serial.print("Suspended JammingTask ProtolTask IgnitionTask DoorNotificationTask\t");
         Serial.println("CC = ON blocked");
         #endif
+
+      }
+     /* Activate CC with digital CCPin */
+     if( ( ulNotifiedValue == 0x03) )
+      {
+        suspendOperationalTasks();
         digitalWrite(CCPin, HIGH);
+        /* update state of the coda */
+        EEPROM.update(stateAddress, BLOCKED_STATE);
+        #ifdef PRINT_CC_STATUS
+        Serial.print("Suspended JammingTask ProtolTask IgnitionTask DoorNotificationTask\t");
+        Serial.println("CC = ON blocked");
+        #endif
+      }
+     /* Deactivate CC with digital CCPin and suspend*/
+     if( ( ulNotifiedValue == 0x04) )
+      {
+        digitalWrite(BuzzerPin, HIGH);
+        vTaskDelay(pdMS_TO_TICKS(100));
+        digitalWrite(BuzzerPin, LOW);
+        suspendOperationalTasks();
+        digitalWrite(CCPin, LOW);
+        /* update state of the coda */
+        EEPROM.update(stateAddress, SUSPEND_STATE);
+        #ifdef PRINT_CC_STATUS
+        Serial.print("Suspended JammingTask ProtolTask IgnitionTask DoorNotificationTask\t");
+        Serial.println("CC OFF ");
+        #endif
+        vTaskSuspend(NULL);
       }
 
       /* Watchdog System-Reset */
       if( ( ulNotifiedValue == 0x10 ) )
       {
+
+        digitalWrite(CCPin, LOW);
+        EEPROM.update(stateAddress, NORMAL_STATE);
         do{
           wdt_enable(WDTO_15MS);
           for(;;){ }
         } while(0);
+
+
       }
-  } /* end for(;;) */
+   } /* end for(;;) */
 }
 
 /*-----------------------------------------------------------*/
@@ -1148,6 +1242,29 @@ int8_t readSerialBluetooth(char * _reading)
   return i;
 }
 
+/* Suspend vIgnitionNotification , vJammingTask, vDoorStatusCheckTask and vProtcolTask
+ * Also update in the EEPROm the current state */
+void suspendOperationalTasks()
+{
+  xTaskNotify(protocol_handler,0x02, eSetValueWithOverwrite );
+
+  /* Suspend optarional tasks */
+  vTaskSuspend(door_handler);
+  vTaskSuspend(jammer_handler);
+  /* wait for ignition to tturn off */
+  vTaskDelay((pdMS_TO_TICKS(10000)));
+  vTaskSuspend(ignition_handler);
+  vTaskSuspend(protocol_handler);
+}
+/* Restart by hardware */
+void restartHW()
+{
+
+  do{
+    wdt_enable(WDTO_15MS);
+    for(;;){ }
+  } while(0);
+}
 //------------------------------------------------------------------------------
 
 void suspendTasks()
@@ -1158,18 +1275,13 @@ void suspendTasks()
 
   /* nofitfy secure protocol off */
   xTaskNotify(protocol_handler,0x02, eSetValueWithOverwrite );
-  #ifdef PRINT_PASSWORD_STATUS
-  Serial.println("Protocol Task notification");
-  #endif
+
   /* send vCCTask CC ON notification */
   xTaskNotify(cc_handler,0x01, eSetValueWithOverwrite );
   vTaskDelay(pdMS_TO_TICKS(500));
   vTaskSuspend(ignition_handler);
   vTaskSuspend(protocol_handler);
   vTaskSuspend(door_handler);
-
-  //vTaskSuspend(dneg_handler);
-  //vTaskSuspend(dpos_handler);
   vTaskSuspend(jammer_handler);
   vTaskSuspend(cc_handler);
 
