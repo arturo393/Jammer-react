@@ -15,8 +15,6 @@ const char VERSION[] = "2.2";
 //#define PRINT_CC_STATUS
 //#define PRINT_DISABLE_STATUS
 
-
-
 //#define PROTOCOLFREE_BYTES
 //#define DISABLE_FREE_BYTES
 //#define IGNITION_FREE_BYTES
@@ -87,32 +85,28 @@ TaskHandle_t jammer_handler;
 TaskHandle_t disable_handler;
 TaskHandle_t protocol_handler;
 TaskHandle_t ignition_handler;
-
 TaskHandle_t door_handler;
-TaskHandle_t passwd_handler;
+
 
 TimerHandle_t xTimerNotification;
 
 void time(long val);
 void printDigits(byte digits);
 int checkPinStatus(uint8_t _pin, uint8_t lastButtonState);
-
-void vTimerCallback( TimerHandle_t xTimer );
-
 void keyGenerator(char * _temp);
 int8_t readSerialBluetooth(char *_reading);
-int8_t bluetoothInit( );
+void bluetoothInit( );
 int8_t sendATCmd(char _cmd[],char *_response);
-
 void suspendOperationalTasks();
 void restartHW();
 void suspendTasks();
+
+void vTimerCallback( TimerHandle_t xTimer );
 
 static void vProtocolTask(void *pvParameters);
 static void vDisableTask(void *pvParameters);
 static void vIgnitionNotification(void *pvParameters);
 static void vJammingTask(void *pvParameters);
-static void vPasswordTask(void *pvParameters);
 static void vCCTask(void *pvParameters);
 static void vDoorStatusCheckTask(void *pvParameters);
 
@@ -123,11 +117,9 @@ unsigned long _time = 0;
 unsigned long _last_time = 0;
 
 
-
-
-
 void setup() {
   Serial1.begin(9600);
+
   #ifdef DEBUG
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
@@ -137,7 +129,7 @@ void setup() {
   }
   #endif
 
-  wdt_enable(WDTO_4S);
+  //wdt_enable(WDTO_4S);
 
   xTaskCreate(vDisableTask,"Disable",configMINIMAL_STACK_SIZE+50+20,NULL,tskIDLE_PRIORITY,&disable_handler);
   xTaskCreate(vCCTask,"CC",configMINIMAL_STACK_SIZE+62-32+10, NULL, tskIDLE_PRIORITY,&cc_handler);
@@ -181,11 +173,9 @@ static void vProtocolTask(void *pvParameters)
 
   uint32_t ulNotifiedValue = 0x00;            /* notified recieve value*/
   TickType_t xFrequency = pdMS_TO_TICKS(10);  /* frecuency for waiting notification */
-  int8_t k=0;
   #ifdef PROTOCOL_FREE_BYTES
   UBaseType_t uxHighWaterMark;
   #endif                   /* counter for displaying one time */
-
   for(;;)
    {
 
@@ -205,7 +195,6 @@ static void vProtocolTask(void *pvParameters)
     if( ( ulNotifiedValue == 0x02  ) )
     {
       digitalWrite(LedPin, LOW);
-      k = 0;
       xFrequency = portMAX_DELAY;
       #ifdef PRINT_PROTOCOL_STATUS
       Serial.print("Secure Protocol Stoped!\n");
@@ -334,18 +323,12 @@ static void vDisableTask(void *pvParameters)
   bool _last_state     = HIGH;              /* CCDisable pin last state*/
   bool _reading_state  = HIGH;              /* CCDisable pin reading state */
   bool _current_state  = HIGH;              /* CCDisable pin current state */
-  bool suspendState    = false;             /* button suspended state */
-  bool checkState      = false;
-  int i = 0;
-  TickType_t xTimeLow;
-  int16_t lastDebounceTime = 0;                 /* the last time the EnableDoorPin pin was toggled */
-  int16_t debounceDelay = pdMS_TO_TICKS(500);   /* the debounce time */
+  TickType_t lastDebounceTime = 0;                 /* the last time the EnableDoorPin pin was toggled */
+  TickType_t debounceDelay = pdMS_TO_TICKS(500);   /* the debounce time */
   int16_t ecount = 0;                           /*counter for EnableDoorPin on*/
   int16_t elimit  = 0;                          /* limit for vCCTask notfiication*/
 
-  bool suspend         = false;          /* bluetooth suspended state */
   char readingString[10];              /* reading string from bluetooth */
-  char _id = 20;                      /* local store for ID device */
 
 
   #ifdef PASSWORD_FREE_BYTES
@@ -491,8 +474,6 @@ static void vDisableTask(void *pvParameters)
     } /* end if any change */
   } /* end if change after debounceDelay */
   _last_state = _reading_state;
-
-
 
       if (readSerialBluetooth(readingString) > 0)
       {
@@ -790,11 +771,10 @@ static void vDoorStatusCheckTask(void *pvParameters)
 
 
 
-  int16_t lastDebounceTimePositive = 0;
-  int16_t lastDebounceTimeNegative = 0;                   /* the last time the output pin was toggled */
-  int16_t debounceDelay = pdMS_TO_TICKS(500);     /* the debounce time */
+  TickType_t lastDebounceTimePositive = 0;
+  TickType_t lastDebounceTimeNegative = 0;                   /* the last time the output pin was toggled */
+  TickType_t debounceDelay = pdMS_TO_TICKS(500);     /* the debounce time */
   uint32_t ulNotifiedValue = 0x00;                /* notified recieve value*/
-  BaseType_t xReturned;                           /* sended notification return */
   TickType_t xFrequency = pdMS_TO_TICKS(100);     /* frecuency for waiting notification */
 
   #ifdef DOOR_FREE_BYTES
@@ -838,18 +818,11 @@ static void vDoorStatusCheckTask(void *pvParameters)
             if(ulNotifiedValue != 0x01)
             {
               /* Notify dooropen to vProtcolTask */
-              xReturned =  xTaskNotify(protocol_handler,( 1UL << 4UL ), eSetBits );
-              #ifdef PRINT_DOORSTATUS
-              if(xReturned == pdPASS)
-              Serial.println("DoorPOSopen vProtocolTask notification");
-              #endif
+              xTaskNotify(protocol_handler,( 1UL << 4UL ), eSetBits );
             }
             /* Notify dooropen to vJammingTask */
-            xReturned = xTaskNotify(jammer_handler,0x01, eSetValueWithOverwrite);
-            #ifdef PRINT_DOORSTATUS
-            if(xReturned == pdPASS)
-              Serial.println("DooroPOSpen vJammingTask notification");
-              #endif
+            xTaskNotify(jammer_handler,0x01, eSetValueWithOverwrite);
+
           } /* end if door is open */
           else /* if door is close do nothing */
           {
@@ -894,18 +867,10 @@ static void vDoorStatusCheckTask(void *pvParameters)
           if(ulNotifiedValue != 0x01)
           {
             /* Notify dooropen to vProtcolTask */
-            xReturned =  xTaskNotify(protocol_handler,( 1UL << 4UL ), eSetBits );
-            #ifdef PRINT_DOORSTATUS
-            if(xReturned == pdPASS)
-              Serial.println("DoorNEGopen vProtocolTask notification");
-            #endif
+            xTaskNotify(protocol_handler,( 1UL << 4UL ), eSetBits );
           }
           /* Notify dooropen to vJammingTask */
-          xReturned = xTaskNotify(jammer_handler,0x01, eSetValueWithOverwrite);
-          #ifdef PRINT_DOORSTATUS
-          if(xReturned == pdPASS)
-            Serial.println("DooroNEGpen vJammingTask notification");
-          #endif
+           xTaskNotify(jammer_handler,0x01, eSetValueWithOverwrite);
         } /* end if door is open */
         else /* if door is close do nothing */
         {
@@ -1050,7 +1015,7 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName 
 //------------------------------------------------------------------------------
 /* Set the initial baudrate for sendig an AT command, then restore dthe baudrate
  * for normal bluetooth operation */
-int8_t bluetoothInit( )
+void bluetoothInit( )
 {
   Serial1.begin(9600);
   Serial1.print("AT+DEFAULT\r\n");
@@ -1067,7 +1032,7 @@ int8_t readSerialBluetooth(char * _reading)
   int i;
   char val2;
   i = 0;
-  val2 = NULL;
+  val2 = '\0';
   while( Serial1.available() )
   {
     val2 = Serial1.read();
@@ -1078,7 +1043,7 @@ int8_t readSerialBluetooth(char * _reading)
     }
     vTaskDelay(configTICK_RATE_HZ/10);
   }
-  _reading[i] = NULL;
+  _reading[i] = '\0';
   return i;
 }
 
@@ -1087,7 +1052,6 @@ int8_t readSerialBluetooth(char * _reading)
 void suspendOperationalTasks()
 {
   xTaskNotify(protocol_handler,0x02, eSetValueWithOverwrite );
-
   /* Suspend optarional tasks */
   vTaskSuspend(door_handler);
   vTaskSuspend(jammer_handler);
@@ -1099,7 +1063,6 @@ void suspendOperationalTasks()
 /* Restart by hardware */
 void restartHW()
 {
-
   do{
     wdt_enable(WDTO_15MS);
     for(;;){ }
@@ -1142,7 +1105,6 @@ void time(long val){
   int seconds = numberOfSeconds(val);
 
    // digital clock display of current time
-
    printDigits(minutes);
    printDigits(seconds);
    Serial.println();
