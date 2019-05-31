@@ -94,23 +94,22 @@ void setup() {
   Serial1.print("AT+NAMEBLACKDEMO3\r\n");
 
 
-  //xReturned = xTaskCreate(vBlueTask,
-  //  "Blue",configMINIMAL_STACK_SIZE+40, NULL, tskIDLE_PRIORITY , &blue_handler);
-  //if(xReturned == pdTRUE){
-  //  Serial1.println("BlueTask Created!");
+//  xReturned = xTaskCreate(vBlueTask,"Blue",configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY , &blue_handler);
+//  if(xReturned == pdTRUE){
+//    Serial1.println("BlueTask Created!");
 //  }
-  xReturned = xTaskCreate(vCCTask,"CC",configMINIMAL_STACK_SIZE+50, NULL, tskIDLE_PRIORITY,&cc_handler);
-  if(xReturned == pdTRUE){
-      Serial1.println("CCTask Created!");
-    }
-  xReturned = xTaskCreate(vProtocolTask,"Protocol",configMINIMAL_STACK_SIZE+50,NULL,tskIDLE_PRIORITY,&protocol_handler);
+//  xReturned = xTaskCreate(vCCTask,"CC",configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY,&cc_handler);
+//  if(xReturned == pdTRUE){
+//      Serial1.println("CCTask Created!");
+//    }
+  xReturned = xTaskCreate(vProtocolTask,"Protocol",configMINIMAL_STACK_SIZE,NULL,tskIDLE_PRIORITY,&protocol_handler);
   if(xReturned == pdTRUE){
       Serial1.println("ProtocoloTask Created!");
     }
-  xReturned = xTaskCreate(vJammingTask,"Jamming",configMINIMAL_STACK_SIZE+50, NULL, tskIDLE_PRIORITY , &jammer_handler);
-  if(xReturned == pdTRUE){
-      Serial1.println("JammingTask Created!");
-  }
+//  xReturned = xTaskCreate(vJammingTask,"Jamming",configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY , &jammer_handler);
+//  if(xReturned == pdTRUE){
+//      Serial1.println("JammingTask Created!");
+//  }
 
   /* bluetooth notification callback */
   xTimerNotification = xTimerCreate(
@@ -164,11 +163,19 @@ static void vProtocolTask(void *pvParameters)
   bool doorNegativeState = LOW;
   bool lastDoorNegativeState = LOW;
 
+
   // to aviod blocked at the first time
   doorPositiveState = digitalRead(DoorPositivePin);
   lastDoorPositiveState = doorPositiveState;
   doorNegativeState = digitalRead(DoorNegativePin);
   lastDoorNegativeState = doorNegativeState;
+
+
+  /* Inspect our own high water mark on entering the task. */
+  UBaseType_t uxHighWaterMark;
+  uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+  Serial1.print("Stack Remain  ");
+  Serial1.println(uxHighWaterMark);
 
   for(;;)
   {
@@ -309,8 +316,7 @@ static void vJammingTask(void *pvParameters)
   {
     if (checkSavedState())
     {
-   //    Serial.println("Jammer Normal");
-      /* if jamming is detected after 1 minute from GPS*/
+      // if jamming is detected after 2 minute from GPS*/
       jammed = !digitalRead(JamDetectionPin);
       if(!jammed) c_jammed = 0;
 
