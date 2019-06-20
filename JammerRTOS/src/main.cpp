@@ -40,6 +40,7 @@ const char VERSION[] = "2.9";
 #define TIME_JAMMING_SECURE    120
 #define TIME_JAMMING_HANG      30*SECS_PER_MIN
 #define TIME_JAMMING_AFTER_SECURE 120
+#define TIME_RESET_HW          720 // * 10 seconds
 #define CCON           LOW
 #define CCOFF          HIGH
 #define NORMAL_STATE   1        /* cirtcuit normal state */
@@ -53,6 +54,7 @@ const char VERSION[] = "2.9";
 
 int stateAddress = 20;
 int address = 0;
+uint32_t c_off = 0;
 
 TaskHandle_t cc_handler;
 TaskHandle_t jammer_handler;
@@ -76,6 +78,8 @@ void restartHW();
 bool checkSavedState();
 
 void setup() {
+
+  wdt_enable(WDTO_8S);
 
   Serial1.begin(9600);
   BaseType_t xReturned;
@@ -468,9 +472,9 @@ static void vCCTask(void *pvParameters)
 
     for (;;)
     {
+      /*
       // for pin disable
       _reading_state = digitalRead(CCDisable);
-      // if CCDisable any change update the debounce time */
       if(_reading_state != _last_state )
       {
         Serial1.println("change CCDisable");
@@ -480,13 +484,14 @@ static void vCCTask(void *pvParameters)
           normal = true;
           Serial1.println("CCDisable ON");
         }
-        // if CCDisable is LOW then CC ON */
+        // if CCDisable is LOW then CC ON
         if(_reading_state == CCOFF){
           blocked = true;
           Serial1.println("CCDisable OF");
         }
       }
-      /* end if any change */
+      */
+
 
       _last_state = _reading_state;
 
@@ -526,7 +531,7 @@ static void vCCTask(void *pvParameters)
       }
 
       /* Activate CC with digital CCPin */
-      if( ( ulNotifiedValue == 0x03) || blocked)
+      if( ( ulNotifiedValue == 0x03))
       {
         vTaskSuspend(jammer_handler);
         vTaskSuspend(protocol_handler);
@@ -582,7 +587,7 @@ static void vCCTask(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(500));
       }
       /* Watchdog System-Reset */
-      if( ( ulNotifiedValue == 0x10 ) || normal )
+      if( ( ulNotifiedValue == 0x10 ) )
       {
         EEPROM.update(stateAddress, NORMAL_STATE);
         do{
@@ -627,6 +632,7 @@ void restartHW()
       for(;;){ }
     } while(0);
   }
+
 void vTimerCallback( TimerHandle_t xTimer )
 {
 
@@ -634,6 +640,14 @@ void vTimerCallback( TimerHandle_t xTimer )
   configASSERT( pxTimer );
   Serial1.print("s");
   Serial1.println(EEPROM.read(stateAddress));
+
+  if(digitalRead(IgnitionPin)) // if ignition off
+    c_off++;
+  else
+    c_off = 0;
+
+  if(c_off >= TIME_RESET_HW)
+    restartHW();
   }
 
 void vTimerMemoryCheckCallback( TimerHandle_t xTimer )
