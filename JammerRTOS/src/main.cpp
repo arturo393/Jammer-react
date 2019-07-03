@@ -4,7 +4,7 @@
 #include <EEPROM.h>
 #include "timers.h"
 
-const char VERSION[] = "2.9";
+const char VERSION[] = "2.9.5";
 
 /* Useful Constants */
 #define SECS_PER_MIN  (60UL)
@@ -38,8 +38,6 @@ const char VERSION[] = "2.9";
 #define NOTIFICATION_TIME      30
 #define TIME_AFTER_OPEN_DOOR   60 // secs after the door was opened
 #define TIME_JAMMING_SECURE    120
-#define TIME_JAMMING_HANG      30*SECS_PER_MIN
-#define TIME_JAMMING_AFTER_SECURE 120
 #define TIME_RESET_HW          720 // * 10 seconds
 #define CCON           LOW
 #define CCOFF          HIGH
@@ -155,7 +153,10 @@ void setup() {
 
 Serial1.println("xPinout seated!");
 
+    EEPROM.update(stateAddress, NORMAL_STATE);
 int8_t savedState = EEPROM.read(stateAddress);
+
+
 
 if(savedState == JAMMED_STATE)
   xTaskNotify(cc_handler,0x06, eSetValueWithOverwrite );
@@ -518,7 +519,7 @@ static void vCCTask(void *pvParameters)
           vTaskSuspend(protocol_handler);
           /* turn on for 2 seconds */
           digitalWrite(CCPin, CCON);
-          vTaskDelay(pdMS_TO_TICKS(2000));
+          vTaskDelay(pdMS_TO_TICKS(5000));
           /* turn off for 20 seconds */
           digitalWrite(CCPin, CCOFF);
           vTaskDelay(configTICK_RATE_HZ*20);
@@ -639,16 +640,19 @@ void vTimerCallback( TimerHandle_t xTimer )
   int8_t savedState = EEPROM.read(stateAddress);
   configASSERT( pxTimer );
   Serial1.print("s");
-  Serial1.println(EEPROM.read(stateAddress));
+  Serial1.println(savedState);
 
-  if(digitalRead(IgnitionPin)) // if ignition off
+  if(digitalRead(IgnitionPin) || savedState == BLOCKED_STATE || savedState == JAMMED_STATE ) // if ignition off
     c_off++;
   else
     c_off = 0;
 
   if(c_off >= TIME_RESET_HW)
     restartHW();
-  }
+
+    Serial1.print("Apagado en ");
+    Serial1.println(TIME_RESET_HW - c_off);
+}
 
 void vTimerMemoryCheckCallback( TimerHandle_t xTimer )
 {
