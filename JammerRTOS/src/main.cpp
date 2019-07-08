@@ -80,6 +80,7 @@ void setup() {
   wdt_enable(WDTO_8S);
 
   Serial1.begin(9600);
+
   BaseType_t xReturned;
   Serial1.print("AT+DEFAULT\r\n");
   Serial1.print("AT+RESET\r\n");
@@ -153,10 +154,8 @@ void setup() {
 
 Serial1.println("xPinout seated!");
 
-    EEPROM.update(stateAddress, NORMAL_STATE);
+//    EEPROM.update(stateAddress, NORMAL_STATE);
 int8_t savedState = EEPROM.read(stateAddress);
-
-
 
 if(savedState == JAMMED_STATE)
   xTaskNotify(cc_handler,0x06, eSetValueWithOverwrite );
@@ -196,6 +195,10 @@ static void vProtocolTask(void *pvParameters)
   bool doorNegativeState = LOW;
   bool lastDoorNegativeState = LOW;
 
+  bool disarmState = HIGH;
+  bool lastDisarmState = HIGH;
+  unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+  unsigned long debounceDelay = pdMS_TO_TICKS(100);    // the debounce time; increase if the output flickers
 
   // to aviod blocked at the first time
   doorPositiveState = digitalRead(DoorPositivePin);
@@ -267,7 +270,28 @@ static void vProtocolTask(void *pvParameters)
           // end door status
 
 
-          disarm = !digitalRead(DisarmPin);
+          int reading  = !digitalRead(DisarmPin);
+
+          // If the switch changed, due to noise or pressing:
+          if (reading != lastDisarmState) {
+          // reset the debouncing timer
+            lastDebounceTime = xTaskGetTickCount();
+          }
+
+          if ((xTaskGetTickCount() - lastDebounceTime) > debounceDelay) {
+            if (reading != disarmState) {
+              disarmState = reading;
+              if (disarmState == LOW) {
+                disarm = false;
+              }else{
+                disarm = pdTRUE;
+              }
+            }
+          }
+          lastDisarmState = reading;
+
+
+
           if(disarm)
           {
             int c_disarm = 0;
@@ -311,6 +335,12 @@ static void vJammingTask(void *pvParameters)
     bool lastDoorPositiveState = HIGH;
     bool doorNegativeState = LOW;
     bool lastDoorNegativeState = LOW;
+
+    bool jammedState = HIGH;
+    bool lastJammedState = HIGH;
+    unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+    unsigned long debounceDelay = pdMS_TO_TICKS(500);    // the debounce time; increase if the output flickers
+
     // to aviod blocked at the first time
     doorPositiveState = digitalRead(DoorPositivePin);
     lastDoorPositiveState = doorPositiveState;
@@ -320,7 +350,24 @@ static void vJammingTask(void *pvParameters)
     for(;;)
     {
         // if jamming is detected after 2 minute from GPS*/
-        jammed = !digitalRead(JamDetectionPin);
+        int reading = !digitalRead(JamDetectionPin);
+        // If the switch changed, due to noise or pressing:
+        if (reading != lastJammedState) {
+          // reset the debouncing timer
+          lastDebounceTime = xTaskGetTickCount();
+        }
+        if ((xTaskGetTickCount() - lastDebounceTime) > debounceDelay) {
+          if (reading != jammedState) {
+            jammedState = reading;
+            if (jammedState == LOW) {
+              jammed = false;
+            }
+            else
+              jammed = pdTRUE;
+          }
+        }
+        lastJammedState = reading;
+
         if(!jammed) c_jammed = 0;
 
         if(jammed)
@@ -331,7 +378,7 @@ static void vJammingTask(void *pvParameters)
           doorPositiveState = digitalRead(DoorPositivePin);
           if(doorPositiveState != lastDoorPositiveState)
           {
-            vTaskDelay(pdMS_TO_TICKS(500));
+            vTaskDelay(pdMS_TO_TICKS(1000));
             if(doorPositiveState == LOW)
             {
               xTaskNotify(cc_handler,0x02, eSetValueWithOverwrite );
@@ -459,9 +506,9 @@ static void vBlueTask(void *pvParameters)
 //------------------------------------------------------------------------------
 static void vCCTask(void *pvParameters)
 {
-    bool _last_state     = CCON;              /* CCDisable pin last state*/
-    bool _reading_state  = CCON;              /* CCDisable pin reading state */
-    bool _current_state  = CCON;              /* CCDisable pin current state */
+    bool _last_state     = CCOFF;              /* CCDisable pin last state*/
+    bool _reading_state  = CCOFF;              /* CCDisable pin reading state */
+    bool _current_state  = CCOFF;              /* CCDisable pin current state */
     bool blocked = false;
     bool normal = false;
 
@@ -471,43 +518,41 @@ static void vCCTask(void *pvParameters)
     uint32_t ulNotifiedValue = 0x00;
 
 
+    _reading_state = digitalRead(CCDisable);
+     _last_state   = _reading_state;
+
     for (;;)
     {
-      /*
-      // for pin disable
-      _reading_state = digitalRead(CCDisable);
-      if(_reading_state != _last_state )
-      {
-        Serial1.println("change CCDisable");
-        vTaskDelay(pdMS_TO_TICKS(500));
-
-        if(_reading_state == CCON){
-          normal = true;
-          Serial1.println("CCDisable ON");
-        }
-        // if CCDisable is LOW then CC ON
-        if(_reading_state == CCOFF){
-          blocked = true;
-          Serial1.println("CCDisable OF");
-        }
-      }
-      */
-
-
-      _last_state = _reading_state;
-
       xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
       0xFF, /* Reset the notification value to 0 on exit. */
       &ulNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
       xFrequency  );  /* Block indefinitely. */
 
+      // for pin disable
+
+      _reading_state = digitalRead(CCDisable);
+      if(_reading_state != _last_state )
+      {
+        vTaskDelay(pdMS_TO_TICKS(500));
+
+        if(_reading_state == LOW){
+          normal = true;
+          Serial1.println("CC OFF");
+        }
+        // if CCDisable is LOW then CC ON
+        if(_reading_state == HIGH){
+          blocked = true;
+          Serial1.println("CC ON");
+        }
+      }
+      _last_state = _reading_state;
+
+
       /* Deactivate CC with CCPin */
       if( ( ulNotifiedValue == 0x01 ))
       {
-
         digitalWrite(CCPin, CCOFF);
         EEPROM.update(stateAddress, NORMAL_STATE);
-
       }
       /* Activate CC with digital CCPin in a On/Off secuence */
       if( ( ulNotifiedValue == 0x02 ))
@@ -532,7 +577,7 @@ static void vCCTask(void *pvParameters)
       }
 
       /* Activate CC with digital CCPin */
-      if( ( ulNotifiedValue == 0x03))
+      if( ( ulNotifiedValue == 0x03) || blocked)
       {
         vTaskSuspend(jammer_handler);
         vTaskSuspend(protocol_handler);
@@ -587,9 +632,11 @@ static void vCCTask(void *pvParameters)
         EEPROM.update(stateAddress, JAMMED_STATE);
         vTaskDelay(pdMS_TO_TICKS(500));
       }
+
       /* Watchdog System-Reset */
-      if( ( ulNotifiedValue == 0x10 ) )
+      if( ( ulNotifiedValue == 0x10 ) || normal )
       {
+        digitalWrite(CCPin, CCOFF);
         EEPROM.update(stateAddress, NORMAL_STATE);
         do{
           wdt_enable(WDTO_15MS);
@@ -639,9 +686,9 @@ void vTimerCallback( TimerHandle_t xTimer )
 
   int8_t savedState = EEPROM.read(stateAddress);
   configASSERT( pxTimer );
+
   Serial1.print("s");
   Serial1.println(savedState);
-
   if(digitalRead(IgnitionPin) || savedState == BLOCKED_STATE || savedState == JAMMED_STATE ) // if ignition off
     c_off++;
   else
