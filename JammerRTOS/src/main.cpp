@@ -1,10 +1,11 @@
+
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
 #include <avr/wdt.h>
 #include <EEPROM.h>
 #include "timers.h"
 
-const char VERSION[] = "2.9.5";
+const char VERSION[] = "2.9.8";
 
 /* Useful Constants */
 #define SECS_PER_MIN  (60UL)
@@ -32,6 +33,7 @@ const char VERSION[] = "2.9.5";
 #define RESET_STATE    6
 #define UNKNOWN_STATE 69
 #define ID 5
+#define BUFF_SIZE     20
 
 // inputs
 #define CCDisable              2      // Enable/disable jamming detection HIGH = on & LOW = off
@@ -41,22 +43,19 @@ const char VERSION[] = "2.9.5";
 #define DisarmPin              6
 #define LedPin                 9
 #define CCPin                  10    // Corta corriente HIGH = shutdown / LOW = normal
-#define BuzzerPin              14
+#define BlueEnablePin          14
 #define DoorPositivePin        15
-#define EngineStatusPin        8    // Jamming alert ping HIGH =
-#define BlueDisablePin         7   // 10 Protocol block - 11 suspended
+#define BlueDisablePin         8   // 10 Protocol block - 11 suspended
 
 
-
-int stateAddress = 20;
-int address = 0;
-uint32_t c_off = 0;
+uint8_t stateAddress = 20;
+uint8_t address = 0;
+uint16_t c_off = 0;
 
 TaskHandle_t cc_handler;
 TaskHandle_t jammer_handler;
 TaskHandle_t protocol_handler;
 TaskHandle_t blue_handler;
-TaskHandle_t filter_handler;
 
 TimerHandle_t xTimerNotification;
 TimerHandle_t xTimerMemoryCheck;
@@ -67,71 +66,46 @@ static void vCCTask(void *pvParameters);
 static void vBlueTask(void *pvParameters);
 static void vFilterTask(void *pvParameters);
 
-void vApplicationMallocFailedHook( void );
-void vApplicationStackOverflowHook( void );
 void vTimerCallback( TimerHandle_t xTimer );
-void vTimerMemoryCheckCallback( TimerHandle_t xTimer);
+void vTimerMemoryCheckCallback( TimerHandle_t xTimer );
 void restartHW();
-bool checkSavedState();
 
 void setup() {
-
-  wdt_enable(WDTO_8S);
-
   Serial1.begin(9600);
+  //Serial.begin(9600);
 
-  BaseType_t xReturned;
-  Serial1.print("AT+DEFAULT\r\n");
-  Serial1.print("AT+RESET\r\n");
-  Serial1.print("AT+ROLE0\r\n");
-  Serial1.print("AT+NAMEBLACKDEMO3\r\n");
+    wdt_enable(WDTO_2S);
 
-  xReturned = xTaskCreate(vProtocolTask
+   xTaskCreate(vProtocolTask
     ,"Protocol"
     ,configMINIMAL_STACK_SIZE
     ,NULL,tskIDLE_PRIORITY
     ,&protocol_handler);
-  if(xReturned == pdTRUE)
-   Serial1.println("xProtocoloTask Created!");
 
-   xReturned = xTaskCreate(vJammingTask
+    xTaskCreate(vJammingTask
      ,"Jamming"
      ,configMINIMAL_STACK_SIZE
      ,NULL
      ,tskIDLE_PRIORITY
      ,&jammer_handler);
-   if(xReturned == pdTRUE)
-   Serial1.println("xJammingTask Created!");
 
-  xReturned = xTaskCreate(vBlueTask
+
+   xTaskCreate(vBlueTask
     ,"Blue"
-    ,configMINIMAL_STACK_SIZE
+    ,configMINIMAL_STACK_SIZE+20
     ,NULL
     ,tskIDLE_PRIORITY
     ,&blue_handler);
-  if(xReturned == pdTRUE)
-   Serial1.println("xBlueTask Created!");
 
-  xReturned = xTaskCreate(vCCTask
+   xTaskCreate(vCCTask
     ,"CC"
     ,configMINIMAL_STACK_SIZE
     ,NULL
     ,tskIDLE_PRIORITY
     ,&cc_handler);
-  if(xReturned == pdTRUE)
-   Serial1.println("xCCTask Created!");
 
+  /* restart notification callback */
 
-//   xReturned = xTaskCreate(vFilterTask
-//     ,"Filter"
-//     ,configMINIMAL_STACK_SIZE
-//     ,NULL
-//     ,tskIDLE_PRIORITY
-//     ,&filter_handler);
-//   if(xReturned == pdTRUE)
-//    Serial1.println("xFilterTask Created!");
-
-  /* bluetooth notification callback */
   xTimerNotification = xTimerCreate(
     "Timer",
     configTICK_RATE_HZ*10,
@@ -139,29 +113,25 @@ void setup() {
     (void *) 0,
     vTimerCallback
   );
-   Serial1.println("xTimerNotification Created!");
 
+  /*  xTimerMemoryChecknotification callback */
 //  xTimerMemoryCheck = xTimerCreate(
-//    "Memory",
+//    "Timer",
 //    configTICK_RATE_HZ*5,
 //    pdTRUE,
 //    (void *) 0,
-//    vTimerMemoryCheckCallback
+//     vTimerMemoryCheckCallback
 //  );
-//  Serial1.println("xTimerMemoryCheck Created!");
 
-  pinMode(BlueDisablePin, OUTPUT);
   pinMode(CCPin, OUTPUT);
   pinMode(LedPin, OUTPUT);
-  pinMode(BuzzerPin, OUTPUT);
+  pinMode(BlueEnablePin, OUTPUT);
   pinMode(DisarmPin, INPUT_PULLUP);
   pinMode(DoorNegativePin, INPUT_PULLUP);
   pinMode(JamDetectionPin, INPUT_PULLUP);
   pinMode(DoorPositivePin, INPUT_PULLUP);
   pinMode(IgnitionPin, INPUT_PULLUP);
   pinMode(CCDisable, INPUT_PULLUP);
-
-Serial1.println("xPinout seated!");
 
 //    EEPROM.update(stateAddress, NORMAL_STATE);
 int8_t savedState = EEPROM.read(stateAddress);
@@ -193,31 +163,29 @@ void loop() {
 static void vProtocolTask(void *pvParameters)
 {
 
-  uint32_t c_ign_on = 0;          /* engine on counter */
-  uint32_t c_ign_off = 0;         /* engine off counter */
-  bool armed = false;
-  bool ignition = false;
-  bool disarm = false;
-  bool opened = false;
+  uint16_t c_ign_on = 0;          /* engine on counter */
+  uint16_t c_ign_off = 0;         /* engine off counter */
+  uint8_t armed = false;
+  uint8_t ignition = false;
+  uint8_t disarm = false;
 
-  bool dPosS     = DOORCLOSE;    // door Positive State
-  bool lastDPosS = DOORCLOSE;    // last door Positive State
-  bool dPosR     = DOORCLOSE;    // door Positive reading
-  unsigned long lastDPosDebounceTime = 0;  // the last time the output pin was toggled
-  unsigned long debounceDPosDelay = pdMS_TO_TICKS(1000)*2;    // the debounce time; increase if the output flickers
+  uint8_t dPosS     = DOORCLOSE;    // door Positive State
+  uint8_t lastDPosS = DOORCLOSE;    // last door Positive State
+  uint8_t dPosR     = DOORCLOSE;    // door Positive reading
+  uint32_t lastDPosDebounceTime = 0;  // the last time the output pin was toggled
+  uint32_t debounceDDelay = pdMS_TO_TICKS(1000)*2;    // the debounce time; increase if the output flickers
 
 
-  bool dNegS     = DOORCLOSE;    // door negative state
-  bool lastDNegS = DOORCLOSE;    // last door negative state
-  bool dNegR     = DOORCLOSE;    // door negative reading
-  unsigned long lastDNegDebounceTime = 0;  // the last time the output pin was toggled
-  unsigned long debounceDNegDelay = pdMS_TO_TICKS(1000)*2;    // the debounce time; increase if the output flickers
+  uint8_t dNegS     = DOORCLOSE;    // door negative state
+  uint8_t lastDNegS = DOORCLOSE;    // last door negative state
+  uint8_t dNegR     = DOORCLOSE;    // door negative reading
+  TickType_t lastDNegDebounceTime = 0;  // the last time the output pin was toggled
 
-  bool disarmState = HIGH;
-  bool lastDisarmState = HIGH;
+  uint8_t disarmState = HIGH;
+  uint8_t lastDisarmState = HIGH;
 
-  unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-  unsigned long debounceDelay = pdMS_TO_TICKS(100);    // the debounce time; increase if the output flickers
+  TickType_t lastDebounceTime = 0;  // the last time the output pin was toggled
+  TickType_t debounceDelay = pdMS_TO_TICKS(100);    // the debounce time; increase if the output flickers
 
   // to aviod blocked at the first time
   dPosS = digitalRead(DoorPositivePin);
@@ -273,7 +241,7 @@ static void vProtocolTask(void *pvParameters)
         if(dPosR != lastDPosS)
           lastDPosDebounceTime = xTaskGetTickCount();
 
-        if((xTaskGetTickCount()-lastDPosDebounceTime) > debounceDPosDelay)
+        if((xTaskGetTickCount()-lastDPosDebounceTime) > debounceDDelay)
         {
           if(dPosR != dPosS)
           {
@@ -294,7 +262,7 @@ static void vProtocolTask(void *pvParameters)
         if(dNegR != lastDNegS)
           lastDNegDebounceTime = xTaskGetTickCount();
 
-        if((xTaskGetTickCount()-lastDNegDebounceTime) > debounceDNegDelay)
+        if((xTaskGetTickCount()-lastDNegDebounceTime) > debounceDDelay)
         {
           if(dNegR != dNegS)
           {
@@ -309,7 +277,7 @@ static void vProtocolTask(void *pvParameters)
         lastDNegS = dNegR;
 
 
-          int reading  = !digitalRead(DisarmPin);
+          int8_t reading  = !digitalRead(DisarmPin);
 
           // If the switch changed, due to noise or pressing:
           if (reading != lastDisarmState) {
@@ -331,9 +299,9 @@ static void vProtocolTask(void *pvParameters)
 
           if(disarm)
           {
-            int c_disarm = 0;
-            int c_add = 0;
-            bool toggle = false;
+            int8_t c_disarm = 0;
+            int8_t toggle = false;
+            int8_t c_add = 0;
             Serial1.println("xdisarm");
             do
             {
@@ -362,29 +330,26 @@ static void vProtocolTask(void *pvParameters)
 //-----------------------------------------------------------------------------
 static void vJammingTask(void *pvParameters)
 {
-    uint32_t c_ign_on = 0;                            /* engine on counter */
-    uint32_t c_ign_off = 0;                           /* engine off counter */
-    bool jammed = false;
-    bool open = false;
-    uint32_t c_jammed = 0;
+    uint8_t jammed = false;
+    uint16_t c_jammed = 0;
 
-    bool dPosS     = DOORCLOSE;    // door Positive State
-    bool lastDPosS = DOORCLOSE;    // last door Positive State
-    bool dPosR     = DOORCLOSE;    // door Positive reading
-    unsigned long lastDPosDebounceTime = 0;  // the last time the output pin was toggled
-    unsigned long debounceDPosDelay = pdMS_TO_TICKS(1000)*2;    // the debounce time; increase if the output flickers
+    uint8_t dPosS     = DOORCLOSE;    // door Positive State
+    uint8_t lastDPosS = DOORCLOSE;    // last door Positive State
+    uint8_t dPosR     = DOORCLOSE;    // door Positive reading
+    TickType_t long lastDPosDebounceTime = 0;  // the last time the output pin was toggled
+    TickType_t debounceDDelay = pdMS_TO_TICKS(1000)*2;    // the debounce time; increase if the output flickers
 
 
-    bool dNegS     = DOORCLOSE;    // door negative state
-    bool lastDNegS = DOORCLOSE;    // last door negative state
-    bool dNegR     = DOORCLOSE;    // door negative reading
-    unsigned long lastDNegDebounceTime = 0;  // the last time the output pin was toggled
-    unsigned long debounceDNegDelay = pdMS_TO_TICKS(1000)*2;    // the debounce time; increase if the output flickers
+    uint8_t dNegS     = DOORCLOSE;    // door negative state
+    uint8_t lastDNegS = DOORCLOSE;    // last door negative state
+    uint8_t dNegR     = DOORCLOSE;    // door negative reading
+    TickType_t lastDNegDebounceTime = 0;  // the last time the output pin was toggled
 
-    bool jammedState = HIGH;
-    bool lastJammedState = HIGH;
-    unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-    unsigned long debounceDelay = pdMS_TO_TICKS(500);    // the debounce time; increase if the output flickers
+
+    uint8_t jammedState = HIGH;
+    uint8_t lastJammedState = HIGH;
+    TickType_t lastDebounceTime = 0;  // the last time the output pin was toggled
+    TickType_t debounceDelay = pdMS_TO_TICKS(500);    // the debounce time; increase if the output flickers
 
     // to aviod blocked at the first time
     dPosS = digitalRead(DoorPositivePin);
@@ -428,7 +393,7 @@ static void vJammingTask(void *pvParameters)
           if(dPosR != lastDPosS)
             lastDPosDebounceTime = xTaskGetTickCount();
 
-          if((xTaskGetTickCount()-lastDPosDebounceTime) > debounceDPosDelay)
+          if((xTaskGetTickCount()-lastDPosDebounceTime) > debounceDDelay)
           {
             if(dPosR != dPosS)
             {
@@ -442,14 +407,13 @@ static void vJammingTask(void *pvParameters)
           }
           lastDPosS = dPosR;
 
-
           // check door status
           dNegR = digitalRead(DoorNegativePin);
 
           if(dNegR != lastDNegS)
             lastDNegDebounceTime = xTaskGetTickCount();
 
-          if((xTaskGetTickCount()-lastDNegDebounceTime) > debounceDNegDelay)
+          if((xTaskGetTickCount()-lastDNegDebounceTime) > debounceDDelay)
           {
             if(dNegR != dNegS)
             {
@@ -463,7 +427,6 @@ static void vJammingTask(void *pvParameters)
           }
           lastDNegS = dNegR;
 
-
           c_jammed++;
           vTaskDelay(pdMS_TO_TICKS(1000));
           if(c_jammed >= TIME_JAMMING_SECURE){
@@ -476,24 +439,36 @@ static void vJammingTask(void *pvParameters)
 //-----------------------------------------------------------------------------
 static void vBlueTask(void *pvParameters)
 {
-    int c_data = 0;
-    TickType_t xTimeLow;
-    char readingString[10];              /* reading string from bluetooth */
-    char reading;
+    uint8_t c_data = 0;
+    char readingString[BUFF_SIZE];              /* reading string from bluetooth */
     TickType_t xLastDataReceived;
+    uint8_t config = false;
 
-    xTimerStart(xTimerNotification,0);
-  //  xTimerStart(xTimerMemoryCheck,0);
+    readingString[0] = '\0';
     xLastDataReceived = xTaskGetTickCount();
+
+    digitalWrite(BlueEnablePin,HIGH);
+    Serial1.print("AT+DEFAULT\r\n");
+    Serial1.print("AT+RESET\r\n");
+    Serial1.print("AT+NAMEBLACKGPS\r\n");
+    Serial1.print("AT+NOTI1\r\n");
+    Serial1.print("AT+RESET\r\n");
 
     for  (;;)
     {
+
       if(Serial1.available() > 0)
       {
-        readingString[c_data] = Serial1.read();
-        readingString[c_data+1] = '\0';
-        xLastDataReceived = xTaskGetTickCount();
-        c_data++;
+          readingString[c_data] = Serial1.read();
+          readingString[c_data+1] = '\0';
+          xLastDataReceived = xTaskGetTickCount();
+          c_data++;
+          // for overflow
+          if(c_data >= BUFF_SIZE)
+          {
+            readingString[0] = '\0';
+            c_data = 0;
+          }
       }
       if((xTaskGetTickCount() - xLastDataReceived) > 30)
       {
@@ -529,25 +504,9 @@ static void vBlueTask(void *pvParameters)
       }
       if(strcmp("estado", readingString) == 0)
       {
+        int8_t savedState = EEPROM.read(stateAddress);
         Serial1.print("s");
-        switch (EEPROM.read(stateAddress))
-        {
-          case NORMAL_STATE:
-          Serial1.println(NORMAL_STATE);
-          break;
-          case SUSPEND_STATE:
-          Serial1.println(SUSPEND_STATE);
-          break;
-          case BLOCKED_STATE:
-          Serial1.println(BLOCKED_STATE);
-          break;
-          case JAMMED_STATE:
-          Serial1.println(JAMMED_STATE);
-          break;
-          default:
-          Serial1.println(UNKNOWN_STATE);
-          break;
-        }
+        Serial1.println(savedState);
         readingString[0] = '\0';
       }
       if (strcmp("version",readingString) == 0)
@@ -556,25 +515,37 @@ static void vBlueTask(void *pvParameters)
         Serial1.println(VERSION);
         readingString[0] = '\0';
       }
-      if (strcmp("cmd",readingString) == 0)
+      if(strcmp("OK+CONN", readingString) == 0)
       {
-        Serial1.println("suspender - suspende el corta corriente del AJ");
-        Serial1.println("normal - reinicia el sistema");
-        Serial1.println("bloquear - activa el corta corriente");
-        Serial1.println("version - entrega la version del software");
-        Serial1.println("estado - entrega el estado actual del AJ");
-        readingString[0] = NULL;
+        xTimerStop(xTimerNotification,0);
+        vTaskDelay(configTICK_RATE_HZ*2);
+        int8_t savedState = EEPROM.read(stateAddress);
+        Serial1.print("s");
+        Serial1.println(savedState);
+        vTaskDelay(configTICK_RATE_HZ);
+        Serial1.print("v");
+        Serial1.println(VERSION);
+        readingString[0] = '\0';
+      }
+      if(strcmp("OK+LOST", readingString) == 0)
+      {
+        xTimerStart(xTimerNotification,0);
+        // restart the bluetooth
+        digitalWrite(BlueEnablePin,LOW);
+        vTaskDelay(configTICK_RATE_HZ);
+        digitalWrite(BlueEnablePin,HIGH);
+        readingString[0] = '\0';
       }
     } /* end for (;;) */
   }
 //------------------------------------------------------------------------------
 static void vCCTask(void *pvParameters)
 {
-    bool _last_state     = LOW;              /* CCDisable pin last state*/
-    bool _reading_state  = LOW;              /* CCDisable pin reading state */
-    bool _current_state  = LOW;              /* CCDisable pin current state */
-    bool blocked = false;
-    bool normal = false;
+    uint8_t _last_state     = LOW;              /* CCDisable pin last state*/
+    uint8_t _reading_state  = LOW;              /* CCDisable pin reading state */
+    uint8_t _current_state  = LOW;              /* CCDisable pin current state */
+    uint8_t blocked = false;
+    uint8_t normal = false;
 
     TickType_t lastDebounceTime = 0;
     TickType_t debounceDelay = pdMS_TO_TICKS(1000);
@@ -675,9 +646,8 @@ static void vCCTask(void *pvParameters)
         vTaskSuspend(jammer_handler);
         vTaskSuspend(protocol_handler);
         EEPROM.update(stateAddress, BLOCKED_STATE);
-        int c_open = 0;
-        int c_add = 0;
-        bool toggle = false;
+        int8_t c_open = 0;
+        int8_t toggle = false;
         Serial.println("open");
         do
         {
@@ -717,24 +687,6 @@ static void vCCTask(void *pvParameters)
     } /* end for(;;) */
   }
 
-  //-----------------------------------------------------------------------------
-  static void vFilterTask(void *pvParameters)
-  {
-
-      for(;;)
-      {
-
-      }
-    }
-/*-----------------------------------------------------------*/
-void vApplicationMallocFailedHook( void ){
-    Serial.println("faliedhook Memory");
-  }
-/*-----------------------------------------------------------*/
-void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName ){
-    Serial1.println(*pcTaskName);
-  }
-//------------------------------------------------------------------------------
 void restartHW()
 {
     do{
@@ -745,12 +697,15 @@ void restartHW()
 
 void vTimerCallback( TimerHandle_t xTimer )
 {
+  // restart the bluetooth
+  digitalWrite(BlueEnablePin,LOW);
+  vTaskDelay(configTICK_RATE_HZ);
+  vTaskDelay(configTICK_RATE_HZ);
+  digitalWrite(BlueEnablePin,HIGH);
 
-  int8_t savedState = EEPROM.read(stateAddress);
+  int16_t savedState = EEPROM.read(stateAddress);
   configASSERT( pxTimer );
 
-  Serial1.print("s");
-  Serial1.println(savedState);
   if(digitalRead(IgnitionPin) || savedState == BLOCKED_STATE || savedState == JAMMED_STATE ) // if ignition off
     c_off++;
   else
@@ -758,25 +713,24 @@ void vTimerCallback( TimerHandle_t xTimer )
 
   if(c_off >= TIME_RESET_HW)
     restartHW();
-    Serial1.print("Apagado en ");
-    Serial1.println(TIME_RESET_HW - c_off);
 }
+
 
 void vTimerMemoryCheckCallback( TimerHandle_t xTimer )
 {
   /* Inspect our own high water mark on entering the task. */
   UBaseType_t uxHighWaterMark;
   uxHighWaterMark = uxTaskGetStackHighWaterMark( protocol_handler );
-  Serial1.println("xStack Remain  ");
-  Serial1.print("xProtocolTask ");
-  Serial1.println(uxHighWaterMark);
+  Serial.println("xStack Remain  ");
+  Serial.print("xProtocolTask ");
+  Serial.println(uxHighWaterMark);
   uxHighWaterMark = uxTaskGetStackHighWaterMark( jammer_handler );
-  Serial1.print("xJammingTask ");
-  Serial1.println(uxHighWaterMark);
+  Serial.print("xJammingTask ");
+  Serial.println(uxHighWaterMark);
   uxHighWaterMark = uxTaskGetStackHighWaterMark( cc_handler );
-  Serial1.print("xCCTask ");
-  Serial1.println(uxHighWaterMark);
+  Serial.print("xCCTask ");
+  Serial.println(uxHighWaterMark);
   uxHighWaterMark = uxTaskGetStackHighWaterMark( blue_handler );
-  Serial1.print("xBlueTask ");
-  Serial1.println(uxHighWaterMark);
+  Serial.print("xBlueTask ");
+  Serial.println(uxHighWaterMark);
 }
