@@ -5,7 +5,7 @@
 #include <EEPROM.h>
 #include "timers.h"
 
-const char VERSION[] = "2.9.8";
+const char VERSION[] = "2.9.9";
 
 /* Useful Constants */
 #define SECS_PER_MIN  (60UL)
@@ -58,6 +58,7 @@ TaskHandle_t protocol_handler;
 TaskHandle_t blue_handler;
 
 TimerHandle_t xTimerNotification;
+TimerHandle_t xTimerRestart;
 TimerHandle_t xTimerMemoryCheck;
 
 static void vProtocolTask(void *pvParameters);
@@ -68,6 +69,8 @@ static void vFilterTask(void *pvParameters);
 
 void vTimerCallback( TimerHandle_t xTimer );
 void vTimerMemoryCheckCallback( TimerHandle_t xTimer );
+void vTimerRestart( TimerHandle_t xTimer);
+
 void restartHW();
 
 void setup() {
@@ -105,15 +108,21 @@ void setup() {
     ,&cc_handler);
 
   /* restart notification callback */
-
   xTimerNotification = xTimerCreate(
     "Timer",
-    configTICK_RATE_HZ*10,
+    configTICK_RATE_HZ*5,
     pdTRUE,
     (void *) 0,
     vTimerCallback
   );
 
+  xTimerRestart = xTimerCreate(
+    "Timer",
+    configTICK_RATE_HZ*10,
+    pdTRUE,
+    (void *) 0,
+    vTimerRestart
+  );
   /*  xTimerMemoryChecknotification callback */
 //  xTimerMemoryCheck = xTimerCreate(
 //    "Timer",
@@ -132,6 +141,9 @@ void setup() {
   pinMode(DoorPositivePin, INPUT_PULLUP);
   pinMode(IgnitionPin, INPUT_PULLUP);
   pinMode(CCDisable, INPUT_PULLUP);
+
+
+  digitalWrite(BlueEnablePin,HIGH);
 
 //    EEPROM.update(stateAddress, NORMAL_STATE);
 int8_t savedState = EEPROM.read(stateAddress);
@@ -447,7 +459,7 @@ static void vBlueTask(void *pvParameters)
     readingString[0] = '\0';
     xLastDataReceived = xTaskGetTickCount();
 
-    digitalWrite(BlueEnablePin,HIGH);
+
     Serial1.print("AT+DEFAULT\r\n");
     Serial1.print("AT+RESET\r\n");
     Serial1.print("AT+NAMEBLACKGPS\r\n");
@@ -517,19 +529,21 @@ static void vBlueTask(void *pvParameters)
       }
       if(strcmp("OK+CONN", readingString) == 0)
       {
-        xTimerStop(xTimerNotification,0);
-        vTaskDelay(configTICK_RATE_HZ*2);
+        xTimerStart(xTimerNotification,0);
+        xTimerStop(xTimerRestart,0);
+        vTaskDelay(configTICK_RATE_HZ*1);
         int8_t savedState = EEPROM.read(stateAddress);
+        Serial1.println();
         Serial1.print("s");
         Serial1.println(savedState);
-        vTaskDelay(configTICK_RATE_HZ);
         Serial1.print("v");
         Serial1.println(VERSION);
         readingString[0] = '\0';
       }
       if(strcmp("OK+LOST", readingString) == 0)
       {
-        xTimerStart(xTimerNotification,0);
+        xTimerStop(xTimerNotification,0);
+        xTimerStart(xTimerRestart,0);
         // restart the bluetooth
         digitalWrite(BlueEnablePin,LOW);
         vTaskDelay(configTICK_RATE_HZ);
@@ -548,7 +562,7 @@ static void vCCTask(void *pvParameters)
     uint8_t normal = false;
 
     TickType_t lastDebounceTime = 0;
-    TickType_t debounceDelay = pdMS_TO_TICKS(1000);
+    TickType_t debounceDelay = pdMS_TO_TICKS(1000)*2;
     TickType_t xFrequency = pdMS_TO_TICKS(10);
     uint32_t ulNotifiedValue = 0x00;
 
@@ -697,6 +711,15 @@ void restartHW()
 
 void vTimerCallback( TimerHandle_t xTimer )
 {
+  int8_t savedState = EEPROM.read(stateAddress);
+  Serial1.print("s");
+  Serial1.println(savedState);
+  Serial1.print("v");
+  Serial1.println(VERSION);
+}
+
+void vTimerRestart( TimerHandle_t xTimer )
+{
   // restart the bluetooth
   digitalWrite(BlueEnablePin,LOW);
   vTaskDelay(configTICK_RATE_HZ);
@@ -714,7 +737,6 @@ void vTimerCallback( TimerHandle_t xTimer )
   if(c_off >= TIME_RESET_HW)
     restartHW();
 }
-
 
 void vTimerMemoryCheckCallback( TimerHandle_t xTimer )
 {
