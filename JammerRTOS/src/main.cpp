@@ -614,6 +614,7 @@ static void vCCTask(void *pvParameters)
         digitalWrite(LedPin,LOW);
         digitalWrite(CCPin, CCON);
         vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskResume(io_handler);
       }
 
       /* Deactivate CC and suspend tasks*/
@@ -621,11 +622,9 @@ static void vCCTask(void *pvParameters)
       {
         vTaskSuspend(jammer_handler);
         vTaskSuspend(protocol_handler);
-        vTaskSuspend(io_handler);
         digitalWrite(CCPin, CCOFF);
         digitalWrite(LedPin,LOW);
         vTaskDelay(pdMS_TO_TICKS(500));
-        vTaskResume(io_handler);
       }
 
       /* Activate CC with digital CCPin in a On/Off secuence */
@@ -656,11 +655,9 @@ static void vCCTask(void *pvParameters)
       {
         vTaskSuspend(jammer_handler);
         vTaskSuspend(protocol_handler);
-        vTaskSuspend(io_handler);
         digitalWrite(CCPin, CCON);
         digitalWrite(LedPin,LOW);
         vTaskDelay(pdMS_TO_TICKS(500));
-        vTaskResume(io_handler);
       }
       /* Watchdog System-Reset */
       if( ( ulNotifiedValue == 0x10 ) )
@@ -690,7 +687,6 @@ static void vIOTask(void *pvParameters)
     _reading_state = digitalRead(CCDisable);
    _last_state   = _reading_state;
 
-
    int8_t savedState = EEPROM.read(stateAddress);
 
    if(savedState == JAMMED_STATE || savedState == PROTOCOL_STATE || savedState == GPS_STATE || savedState == BLUETOOTH_STATE)
@@ -708,6 +704,7 @@ static void vIOTask(void *pvParameters)
 
    for(;;)
    {
+
      int8_t savedState = EEPROM.read(stateAddress);
      if(savedState == JAMMED_STATE || savedState == PROTOCOL_STATE || savedState == GPS_STATE || savedState == BLUETOOTH_STATE)
      {
@@ -731,14 +728,16 @@ static void vIOTask(void *pvParameters)
          _current_state = _reading_state;
        if(_current_state == LOW && blocked){
          updateState(NORMAL_STATE);
-         xTaskNotify(cc_handler,0x10, eSetValueWithOverwrite );
          Serial1.println("CC OFF");
+         xTaskNotify(cc_handler,0x10, eSetValueWithOverwrite );
+
        }
        // if CCDisable is LOW then CC ON
        if(_current_state == HIGH && !blocked){
          updateState(GPS_STATE);
-         xTaskNotify(cc_handler,0x05, eSetValueWithOverwrite );
          Serial1.println("CC ON");
+         xTaskNotify(cc_handler,0x05, eSetValueWithOverwrite );
+
        }
      }
      }
