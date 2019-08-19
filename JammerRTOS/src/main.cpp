@@ -5,7 +5,7 @@
 #include <EEPROM.h>
 #include "timers.h"
 
-const char VERSION[] = "3.0.1";
+const char VERSION[] = "3.0.2";
 
 /* Useful Constants */
 #define SECS_PER_MIN  (60UL)
@@ -554,11 +554,17 @@ static void vBlueTask(void *pvParameters)
         xTimerStop(xTimerRestart,0);
         vTaskDelay(configTICK_RATE_HZ*1);
         int8_t savedState = EEPROM.read(stateAddress);
-        Serial1.println();
-        Serial1.print("s");
-        Serial1.println(savedState);
-        Serial1.print("v");
-        Serial1.println(VERSION);
+        for(int i = 1; i<=2 ; i++)
+        {
+          Serial1.println();
+          Serial1.print("s");
+          Serial1.println(savedState);
+          Serial1.print("v");
+          Serial1.println(VERSION);
+          Serial1.print("s");
+          Serial1.println(savedState);
+          Serial1.print("v");
+          Serial1.println(VERSION);
         readingString[0] = '\0';
       }
       if(strcmp("OK+LOST", readingString) == 0)
@@ -663,7 +669,7 @@ static void vCCTask(void *pvParameters)
       if( ( ulNotifiedValue == 0x10 ) )
       {
         Serial1.println("System Restart!");
-        digitalWrite(CCPin, CCOFF);
+    //    digitalWrite(CCPin, CCOFF);
         vTaskDelay(pdMS_TO_TICKS(500));
         do{
           wdt_enable(WDTO_15MS);
