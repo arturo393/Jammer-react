@@ -265,7 +265,10 @@ static void vProtocolTask(void *pvParameters)
         dPosR = digitalRead(DoorPositivePin);
 
         if(dPosR != lastDPosS)
+        {
           lastDPosDebounceTime = xTaskGetTickCount();
+          Serial1.println("PosDoor Change");
+        }
 
         if((xTaskGetTickCount()-lastDPosDebounceTime) > debounceDDelay)
         {
@@ -287,8 +290,10 @@ static void vProtocolTask(void *pvParameters)
         dNegR = digitalRead(DoorNegativePin);
 
         if(dNegR != lastDNegS)
+        {
           lastDNegDebounceTime = xTaskGetTickCount();
-
+          Serial1.println("NegDoor Change");
+        }
         if((xTaskGetTickCount()-lastDNegDebounceTime) > debounceDDelay)
         {
           if(dNegR != dNegS)
@@ -427,7 +432,6 @@ static void vJammingTask(void *pvParameters)
               dPosS = dPosR;
               if(dPosS == DOOROPEN)
               {
-
                 xTaskNotify(cc_handler,0x04, eSetValueWithOverwrite );
                 jammed = false;
               }
@@ -556,16 +560,14 @@ static void vBlueTask(void *pvParameters)
         int8_t savedState = EEPROM.read(stateAddress);
         for(int i = 1; i<=2 ; i++)
         {
+          vTaskDelay(configTICK_RATE_HZ);
           Serial1.println();
           Serial1.print("s");
           Serial1.println(savedState);
           Serial1.print("v");
           Serial1.println(VERSION);
-          Serial1.print("s");
-          Serial1.println(savedState);
-          Serial1.print("v");
-          Serial1.println(VERSION);
-        readingString[0] = '\0';
+          readingString[0] = '\0';
+        }
       }
       if(strcmp("OK+LOST", readingString) == 0)
       {
@@ -669,7 +671,7 @@ static void vCCTask(void *pvParameters)
       if( ( ulNotifiedValue == 0x10 ) )
       {
         Serial1.println("System Restart!");
-    //    digitalWrite(CCPin, CCOFF);
+        digitalWrite(CCPin, CCOFF);
         vTaskDelay(pdMS_TO_TICKS(500));
         do{
           wdt_enable(WDTO_15MS);
@@ -748,7 +750,6 @@ static void vIOTask(void *pvParameters)
      }
      }
      _last_state = _reading_state;
-
    }
 }
 
@@ -758,7 +759,7 @@ void restartHW()
       wdt_enable(WDTO_15MS);
       for(;;){ }
     } while(0);
-  }
+}
 
 void vTimerCallback( TimerHandle_t xTimer )
 {
