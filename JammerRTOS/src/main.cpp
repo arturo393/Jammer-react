@@ -46,6 +46,7 @@ const char VERSION[] = "3.0.2";
 #define BlueEnablePin          14
 #define DoorPositivePin        15
 #define BlueDisablePin         8   // 10 Protocol block - 11 suspended
+#define TestPin                7
 
 
 uint8_t stateAddress = 20;
@@ -57,6 +58,7 @@ TaskHandle_t jammer_handler;
 TaskHandle_t protocol_handler;
 TaskHandle_t blue_handler;
 TaskHandle_t io_handler;
+TaskHandle_t test_handler;
 
 TimerHandle_t xTimerNotification;
 TimerHandle_t xTimerRestart;
@@ -67,6 +69,7 @@ static void vJammingTask(void *pvParameters);
 static void vCCTask(void *pvParameters);
 static void vIOTask(void *pvParameters);
 static void vBlueTask(void *pvParameters);
+static void vTestTask(void *pvParameters);
 
 void vTimerCallback( TimerHandle_t xTimer );
 void vTimerMemoryCheckCallback( TimerHandle_t xTimer );
@@ -115,6 +118,13 @@ void setup() {
      ,NULL
      ,tskIDLE_PRIORITY
      ,&io_handler);
+
+     xTaskCreate(vTestTask
+      ,"Test"
+      ,configMINIMAL_STACK_SIZE
+      ,NULL
+      ,tskIDLE_PRIORITY
+      ,&test_handler);
 
   /* restart notification callback */
   xTimerNotification = xTimerCreate(
@@ -552,6 +562,10 @@ static void vBlueTask(void *pvParameters)
         Serial1.println(VERSION);
         readingString[0] = '\0';
       }
+      if (strcmp("test",readingString) == 0)
+      {
+        Serial1.print("Starting Test..\n");
+      }
       if(strcmp("OK+CONN", readingString) == 0)
       {
         xTimerStart(xTimerNotification,0);
@@ -750,6 +764,59 @@ static void vIOTask(void *pvParameters)
      }
      }
      _last_state = _reading_state;
+   }
+}
+
+static void vTestTask(void *pvParameters)
+{
+
+  int  reading;         // door positive reading
+  bool open;
+  bool close;         // door positive closed
+  bool ready = false;
+  open = 0;
+  close = 0;
+
+  int pin[6];
+
+Serial1.println("Test init");
+Serial1.println("DoorPositivePin");
+Serial1.println("DoorNegativePin");
+Serial1.println("DoorIgnitionPin");
+Serial1.println("DoorJamDetectionPin");
+Serial1.println("DoorDisarmPin");
+Serial1.println("DoorCCDisablePin");
+
+pin[0] = DisarmPin;
+pin[1] = CCDisable;
+pin[2] = DoorPositivePin;
+pin[3] = DoorNegativePin;
+pin[4] = JamDetectionPin;
+pin[5] = IgnitionPin;
+int pinNumber = 0;
+
+ for(;;)
+   {
+     reading = digitalRead(pin[pinNumber]);
+     if(reading == HIGH) // door positive closed
+      open =  pdTRUE;
+     if(reading == LOW)  // door positive opened
+      close =  pdTRUE;
+
+      if(open && close)
+      {
+        Serial1.print("Pin ");
+        Serial1.print(pinNumber);
+        Serial1.print("/");
+        Serial1.print(sizeof(pin)/sizeof(pin[0]));
+        Serial1.println(" OK");
+        open = false;
+        close = false;
+        pinNumber++;
+
+        if(pinNumber == sizeof(pin)/sizeof(pin[0]))
+          pinNumber = 0;
+      }
    }
 }
 
