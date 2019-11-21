@@ -36,17 +36,20 @@ const char VERSION[] = "3.0.2";
 #define BUFF_SIZE     20
 
 // inputs
-#define CCDisable              2      // Enable/disable jamming detection HIGH = on & LOW = off
-#define IgnitionPin            3  // (with pull down resistor) Engine power HIGH = on & LOW = off
-#define JamDetectionPin        4
-#define DoorNegativePin        5     // Door sensor  HIGH = open / LOW = close
-#define DisarmPin              6
-#define LedPin                 9
-#define CCPin                  10    // Corta corriente HIGH = shutdown / LOW = normal
-#define BlueEnablePin          14
-#define DoorPositivePin        15
-#define BlueDisablePin         8   // 10 Protocol block - 11 suspended
-#define TestPin                7
+#define CCDisInPin             2    // Enable/disable jamming detection HIGH = on & LOW = off
+#define IgnInPin               3    // (with pull down resistor) Engine power HIGH = on & LOW = off
+#define JamInPin               4    // jammer singla
+#define DNegInPin              5     // Door sensor  HIGH = open / LOW = close
+#define DisarmInPin            6
+#define DPosInPin              15    // Door positive pin
+// output
+#define LedOutPin              9
+#define CCOutPin               10    // Corta corriente HIGH = shutdown / LOW = normal
+#define BlEnOutPin             14    //Bluetooth enable pin
+#define TNegOutPin             16
+#define TPosOutPin             8
+// free
+#define TinitOutPin             7
 
 
 uint8_t stateAddress = 20;
@@ -151,18 +154,24 @@ void setup() {
 //     vTimerMemoryCheckCallback
 //  );
 
-  pinMode(CCPin, OUTPUT);
-  pinMode(LedPin, OUTPUT);
-  pinMode(BlueEnablePin, OUTPUT);
-  pinMode(DisarmPin, INPUT_PULLUP);
-  pinMode(DoorNegativePin, INPUT_PULLUP);
-  pinMode(JamDetectionPin, INPUT_PULLUP);
-  pinMode(DoorPositivePin, INPUT_PULLUP);
-  pinMode(IgnitionPin, INPUT_PULLUP);
-  pinMode(CCDisable, INPUT_PULLUP);
+  pinMode(CCOutPin, OUTPUT);
+  pinMode(LedOutPin, OUTPUT);
+  pinMode(BlEnOutPin, OUTPUT);
+  pinMode(BlEnOutPin, OUTPUT);
+  pinMode(TNegOutPin, OUTPUT);
+  pinMode(TPosOutPin, OUTPUT);
+  pinMode(TinitOutPin,OUTPUT);
 
 
-  digitalWrite(BlueEnablePin,HIGH);
+  pinMode(DisarmInPin, INPUT_PULLUP);
+  pinMode(DNegInPin, INPUT_PULLUP);
+  pinMode(JamInPin, INPUT_PULLUP);
+  pinMode(DPosInPin, INPUT_PULLUP);
+  pinMode(IgnInPin, INPUT_PULLUP);
+  pinMode(CCDisInPin, INPUT_PULLUP);
+
+
+  digitalWrite(BlEnOutPin,HIGH);
 
 //    EEPROM.update(stateAddress, NORMAL_STATE);
 int8_t savedState = EEPROM.read(stateAddress);
@@ -224,16 +233,16 @@ static void vProtocolTask(void *pvParameters)
   TickType_t debounceDelay = pdMS_TO_TICKS(100);    // the debounce time; increase if the output flickers
 
   // to aviod blocked at the first time
-  dPosS = digitalRead(DoorPositivePin);
+  dPosS = digitalRead(DPosInPin);
   lastDPosS = dPosS;
   dPosR = dPosS;
-  dNegS = digitalRead(DoorNegativePin);
+  dNegS = digitalRead(DNegInPin);
   lastDNegS = dNegS;
   dNegR = dNegS;
 
   for(;;)
   {
-      ignition = !digitalRead(IgnitionPin);
+      ignition = !digitalRead(IgnInPin);
       // check ignition ON
       c_ign_on = 0;
       c_ign_off = 0;
@@ -243,12 +252,12 @@ static void vProtocolTask(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(1000));
         if(c_ign_on >= TIME_AFTER_START)
         {
-          digitalWrite(LedPin,HIGH);
+          digitalWrite(LedOutPin,HIGH);
           armed = true;
         }
         Serial1.print("Ign on ");
         Serial1.println(c_ign_on);
-        ignition = !digitalRead(IgnitionPin);
+        ignition = !digitalRead(IgnInPin);
       }
       // end
 
@@ -259,12 +268,12 @@ static void vProtocolTask(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(1000));
         if(c_ign_off >= TIME_AFTER_STOP)
         {
-          digitalWrite(LedPin,LOW);
+          digitalWrite(LedOutPin,LOW);
           armed = false;
         }
         Serial1.print("xIgn off ");
         Serial1.println(c_ign_off);
-        ignition = !digitalRead(IgnitionPin);
+        ignition = !digitalRead(IgnInPin);
       }
 
 
@@ -272,7 +281,7 @@ static void vProtocolTask(void *pvParameters)
       if(armed)
       {
         // check door status
-        dPosR = digitalRead(DoorPositivePin);
+        dPosR = digitalRead(DPosInPin);
 
         if(dPosR != lastDPosS)
         {
@@ -297,7 +306,7 @@ static void vProtocolTask(void *pvParameters)
 
 
         // check door status
-        dNegR = digitalRead(DoorNegativePin);
+        dNegR = digitalRead(DNegInPin);
 
         if(dNegR != lastDNegS)
         {
@@ -319,7 +328,7 @@ static void vProtocolTask(void *pvParameters)
         }
         lastDNegS = dNegR;
 
-          int8_t reading  = !digitalRead(DisarmPin);
+          int8_t reading  = !digitalRead(DisarmInPin);
 
           // If the switch changed, due to noise or pressing:
           if (reading != lastDisarmState) {
@@ -347,8 +356,8 @@ static void vProtocolTask(void *pvParameters)
             Serial1.println("xdisarm");
             do
             {
-              disarm = !digitalRead(DisarmPin);
-              digitalWrite(LedPin,toggle);
+              disarm = !digitalRead(DisarmInPin);
+              digitalWrite(LedOutPin,toggle);
               c_disarm++;
               toggle = !toggle;
               Serial1.print((TIME_TO_OPEN_DOOR+c_add)-c_disarm);
@@ -359,10 +368,10 @@ static void vProtocolTask(void *pvParameters)
             } while(c_disarm <= (TIME_TO_OPEN_DOOR + c_add) );
 
             // to avoid blocked after disarm
-            digitalWrite(LedPin,HIGH);
-            dPosS = digitalRead(DoorPositivePin);
+            digitalWrite(LedOutPin,HIGH);
+            dPosS = digitalRead(DPosInPin);
             lastDPosS = dPosS;
-            dNegS = digitalRead(DoorNegativePin);
+            dNegS = digitalRead(DNegInPin);
             lastDNegS = dNegS;
           }
 
@@ -394,17 +403,17 @@ static void vJammingTask(void *pvParameters)
     TickType_t debounceDelay = pdMS_TO_TICKS(500);    // the debounce time; increase if the output flickers
 
     // to aviod blocked at the first time
-    dPosS = digitalRead(DoorPositivePin);
+    dPosS = digitalRead(DPosInPin);
     lastDPosS = dPosS;
     dPosR = dPosS;
-    dNegS = digitalRead(DoorNegativePin);
+    dNegS = digitalRead(DNegInPin);
     lastDNegS = dNegS;
     dNegR = dNegS;
 
     for(;;)
     {
         // if jamming is detected after 2 minute from GPS*/
-        int reading = !digitalRead(JamDetectionPin);
+        int reading = !digitalRead(JamInPin);
         // If the switch changed, due to noise or pressing:
         if (reading != lastJammedState) {
           // reset the debouncing timer
@@ -430,7 +439,7 @@ static void vJammingTask(void *pvParameters)
           Serial1.println(c_jammed);
 
           // check door status
-          dPosR = digitalRead(DoorPositivePin);
+          dPosR = digitalRead(DPosInPin);
 
           if(dPosR != lastDPosS)
             lastDPosDebounceTime = xTaskGetTickCount();
@@ -450,7 +459,7 @@ static void vJammingTask(void *pvParameters)
           lastDPosS = dPosR;
 
           // check door status
-          dNegR = digitalRead(DoorNegativePin);
+          dNegR = digitalRead(DNegInPin);
 
           if(dNegR != lastDNegS)
             lastDNegDebounceTime = xTaskGetTickCount();
@@ -564,7 +573,8 @@ static void vBlueTask(void *pvParameters)
       }
       if (strcmp("test",readingString) == 0)
       {
-        Serial1.print("Starting Test..\n");
+        xTaskNotify(test_handler,0, eNoAction );
+        readingString[0] = '\0';
       }
       if(strcmp("OK+CONN", readingString) == 0)
       {
@@ -588,9 +598,9 @@ static void vBlueTask(void *pvParameters)
         xTimerStop(xTimerNotification,0);
         xTimerStart(xTimerRestart,0);
         // restart the bluetooth
-        digitalWrite(BlueEnablePin,LOW);
+        digitalWrite(BlEnOutPin,LOW);
         vTaskDelay(configTICK_RATE_HZ);
-        digitalWrite(BlueEnablePin,HIGH);
+        digitalWrite(BlEnOutPin,HIGH);
         readingString[0] = '\0';
       }
     } /* end for (;;) */
@@ -608,10 +618,10 @@ static void vCCTask(void *pvParameters)
       &ulNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
       xFrequency  );  /* Block indefinitely. */
 
-      /* Deactivate CC with CCPin */
+      /* Deactivate CC with CCOutPin */
       if( ( ulNotifiedValue == 0x01 ))
       {
-        digitalWrite(CCPin, CCOFF);
+        digitalWrite(CCOutPin, CCOFF);
       }
 
       /* Activate CC after 1 minute */
@@ -625,7 +635,7 @@ static void vCCTask(void *pvParameters)
         Serial1.println("Door Open");
         do
         {
-          digitalWrite(LedPin,toggle);
+          digitalWrite(LedOutPin,toggle);
           c_open++;
           toggle = !toggle;
           Serial1.print((TIME_TO_OPEN_DOOR*2)-c_open);
@@ -633,8 +643,8 @@ static void vCCTask(void *pvParameters)
           vTaskDelay(pdMS_TO_TICKS(1000/2));
         } while(c_open <= (TIME_AFTER_OPEN_DOOR*2));
 
-        digitalWrite(LedPin,LOW);
-        digitalWrite(CCPin, CCON);
+        digitalWrite(LedOutPin,LOW);
+        digitalWrite(CCOutPin, CCON);
         vTaskDelay(pdMS_TO_TICKS(500));
         vTaskResume(io_handler);
       }
@@ -644,12 +654,12 @@ static void vCCTask(void *pvParameters)
       {
         vTaskSuspend(jammer_handler);
         vTaskSuspend(protocol_handler);
-        digitalWrite(CCPin, CCOFF);
-        digitalWrite(LedPin,LOW);
+        digitalWrite(CCOutPin, CCOFF);
+        digitalWrite(LedOutPin,LOW);
         vTaskDelay(pdMS_TO_TICKS(500));
       }
 
-      /* Activate CC with digital CCPin in a On/Off secuence */
+      /* Activate CC with digital CCOutPin in a On/Off secuence */
       if( ( ulNotifiedValue == 0x04 ))
       {
         for (int j = 0; j  < 2 ; j++ )
@@ -658,15 +668,15 @@ static void vCCTask(void *pvParameters)
           vTaskSuspend(protocol_handler);
           vTaskSuspend(io_handler);
           /* turn on for 2 seconds */
-          digitalWrite(CCPin, CCON);
+          digitalWrite(CCOutPin, CCON);
           vTaskDelay(pdMS_TO_TICKS(5000));
           /* turn off for 20 seconds */
-          digitalWrite(CCPin, CCOFF);
+          digitalWrite(CCOutPin, CCOFF);
           vTaskDelay(configTICK_RATE_HZ*20);
         }
         /* finally turn off */
-        digitalWrite(CCPin, CCON);
-        digitalWrite(LedPin,LOW);
+        digitalWrite(CCOutPin, CCON);
+        digitalWrite(LedOutPin,LOW);
         /* update state of the coda */
         vTaskDelay(pdMS_TO_TICKS(500));
         vTaskResume(io_handler);
@@ -677,15 +687,15 @@ static void vCCTask(void *pvParameters)
       {
         vTaskSuspend(jammer_handler);
         vTaskSuspend(protocol_handler);
-        digitalWrite(CCPin, CCON);
-        digitalWrite(LedPin,LOW);
+        digitalWrite(CCOutPin, CCON);
+        digitalWrite(LedOutPin,LOW);
         vTaskDelay(pdMS_TO_TICKS(500));
       }
       /* Watchdog System-Reset */
       if( ( ulNotifiedValue == 0x10 ) )
       {
         Serial1.println("System Restart!");
-        digitalWrite(CCPin, CCOFF);
+        digitalWrite(CCOutPin, CCOFF);
         vTaskDelay(pdMS_TO_TICKS(500));
         do{
           wdt_enable(WDTO_15MS);
@@ -699,29 +709,29 @@ static void vIOTask(void *pvParameters)
 {
   uint8_t blocked = false;
   uint8_t normal = false;
-  uint8_t _last_state ;              /* CCDisable pin last state*/
-  uint8_t _reading_state;               /* CCDisable pin reading state */
-  uint8_t _current_state;              /* CCDisable pin current state */
+  uint8_t _last_state ;              /* CCDisInPin pin last state*/
+  uint8_t _reading_state;               /* CCDisInPin pin reading state */
+  uint8_t _current_state;              /* CCDisInPin pin current state */
 
   TickType_t lastDebounceTime = 0;
   TickType_t debounceDelay = pdMS_TO_TICKS(500);
 
-    _reading_state = digitalRead(CCDisable);
+    _reading_state = digitalRead(CCDisInPin);
    _last_state   = _reading_state;
 
    int8_t savedState = EEPROM.read(stateAddress);
 
    if(savedState == JAMMED_STATE || savedState == PROTOCOL_STATE || savedState == GPS_STATE || savedState == BLUETOOTH_STATE)
    {
-      _last_state     = HIGH;              /* CCDisable pin last state*/
-      _reading_state  = HIGH;              /* CCDisable pin reading state */
-      _current_state  = HIGH;              /* CCDisable pin current state */
+      _last_state     = HIGH;              /* CCDisInPin pin last state*/
+      _reading_state  = HIGH;              /* CCDisInPin pin reading state */
+      _current_state  = HIGH;              /* CCDisInPin pin current state */
    }
    if(savedState == SUSPEND_STATE || savedState == NORMAL_STATE)
    {
-     _last_state     = LOW;              /* CCDisable pin last state*/
-     _reading_state  = LOW;              /* CCDisable pin reading state */
-     _current_state  = LOW;              /* CCDisable pin current state */
+     _last_state     = LOW;              /* CCDisInPin pin last state*/
+     _reading_state  = LOW;              /* CCDisInPin pin reading state */
+     _current_state  = LOW;              /* CCDisInPin pin current state */
    }
 
    for(;;)
@@ -737,7 +747,7 @@ static void vIOTask(void *pvParameters)
        blocked = !pdTRUE;
      }
 
-     _reading_state = digitalRead(CCDisable);
+     _reading_state = digitalRead(CCDisInPin);
      if(_reading_state != _last_state )
      {
        lastDebounceTime = xTaskGetTickCount();
@@ -754,7 +764,7 @@ static void vIOTask(void *pvParameters)
          xTaskNotify(cc_handler,0x10, eSetValueWithOverwrite );
 
        }
-       // if CCDisable is LOW then CC ON
+       // if CCDisInPin is LOW then CC ON
        if(_current_state == HIGH && !blocked){
          updateState(GPS_STATE);
          Serial1.println("CC ON");
@@ -770,60 +780,93 @@ static void vIOTask(void *pvParameters)
 static void vTestTask(void *pvParameters)
 {
 
-  int  reading;         // door positive reading
-  bool open;
-  bool close;         // door positive closed
+
+  int ios = 6;
+  bool open[ios];
+  bool close[ios];         // door positive closed
+  int  reading[ios];         // door positive reading
   bool ready = false;
-  open = 0;
-  close = 0;
 
-  int pin[6];
+  uint32_t ulNotifiedValue = 0x00;
 
-Serial1.println("Test init");
-Serial1.println("DoorPositivePin");
-Serial1.println("DoorNegativePin");
-Serial1.println("DoorIgnitionPin");
-Serial1.println("DoorJamDetectionPin");
-Serial1.println("DoorDisarmPin");
-Serial1.println("DoorCCDisablePin");
 
-pin[0] = DisarmPin;
-pin[1] = CCDisable;
-pin[2] = DoorPositivePin;
-pin[3] = DoorNegativePin;
-pin[4] = JamDetectionPin;
-pin[5] = IgnitionPin;
-int pinNumber = 0;
 
-digitalWrite(CCPin,HIGH);
-digitalWrite(LedPin,HIGH);
+  int input[ios];
+  int output[ios];
+
+  input[0] = DisarmInPin;
+  input[1] = CCDisInPin;
+  input[2] = DPosInPin;
+  input[3] = DNegInPin;
+  input[4] = JamInPin;
+  input[5] = IgnInPin;
+
+  output[0] = DisarmInPin;
+  output[1] = CCDisInPin;
+  output[2] = DPosInPin;
+  output[3] = DNegInPin;
+  output[4] = JamInPin;
+  output[5] = IgnInPin;
+
+  int reading[ios];
+  int timeout = 0;
+
 
  for(;;)
    {
-     reading = digitalRead(pin[pinNumber]);
-     if(reading == HIGH) // door positive closed
-      open =  pdTRUE;
-     if(reading == LOW)  // door positive opened
-      close =  pdTRUE;
+     xTaskNotifyWait( 0x00,      /* Don't clear any notification bits on entry. */
+     0xFF, /* Reset the notification value to 0 on exit. */
+     &ulNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
+     portMAX_DELAY   );  /* Block indefinitely. */
 
-      if(open && close)
-      {
-        Serial1.print("Pin ");
-        Serial1.print(pinNumber);
-        Serial1.print("/");
-        Serial1.print(sizeof(pin)/sizeof(pin[0]));
-        Serial1.println(" OK");
-        open = false;
-        close = false;
-        pinNumber++;
+     vTaskSuspend(cc_handler);
+     vTaskSuspend(jammer_handler);
+     vTaskSuspend(protocol_handler);
+     vTaskSuspend(io_handler);
 
-        if(pinNumber == sizeof(pin)/sizeof(pin[0]))
-          pinNumber = 0;
-          digitalWrite(CCPin,LOW);
-          digitalWrite(LedPin,LOW);
+     Serial1.println("Test init");
+
+     for(int i = 0; i < ios; i++)
+       digitalWrite(output[i],HIGH);
+
+
+       for(int i = 0; ready == true && timeout == true; i++)
+       {
+         if(i == ios)
+          i = 0;
+
+        reading[i]  = digitalRead(input[i]);
+         if(reading[i] == HIGH)
+         {
+           open[i] =  pdTRUE;
+           digitalWrite(output[i],LOW);
+         }
+
+         if(reading[i] == LOW)  // door positive opened
+          close[i] =  pdTRUE;
+
+
+          if(open[i] && close[i])
+          {
+            Serial1.print("I/O ");
+            Serial1.print(i);
+            Serial1.print("/");
+            Serial1.print(ios);
+            Serial1.println(" OK");
+            open = false;
+            close = false;
+          }
+       }
+
       }
+
+        vTaskResume(cc_handler);
+        vTaskResume(jammer_handler);
+        vTaskResume(protocol_handler);
+        vTaskResume(io_handler);
+     }
+
    }
-}
 
 void restartHW()
 {
@@ -845,15 +888,15 @@ void vTimerCallback( TimerHandle_t xTimer )
 void vTimerRestart( TimerHandle_t xTimer )
 {
   // restart the bluetooth
-  digitalWrite(BlueEnablePin,LOW);
+  digitalWrite(BlEnOutPin,LOW);
   vTaskDelay(configTICK_RATE_HZ);
   vTaskDelay(configTICK_RATE_HZ);
-  digitalWrite(BlueEnablePin,HIGH);
+  digitalWrite(BlEnOutPin,HIGH);
 
   int16_t savedState = EEPROM.read(stateAddress);
   configASSERT( pxTimer );
 
-  if(digitalRead(IgnitionPin) || savedState == PROTOCOL_STATE || savedState == JAMMED_STATE || savedState == GPS_STATE || savedState == BLUETOOTH_STATE) // if ignition off
+  if(digitalRead(IgnInPin) || savedState == PROTOCOL_STATE || savedState == JAMMED_STATE || savedState == GPS_STATE || savedState == BLUETOOTH_STATE) // if ignition off
     c_off++;
   else
     c_off = 0;
