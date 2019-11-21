@@ -795,6 +795,9 @@ pin[4] = JamDetectionPin;
 pin[5] = IgnitionPin;
 int pinNumber = 0;
 
+digitalWrite(CCPin,HIGH);
+digitalWrite(LedPin,HIGH);
+
  for(;;)
    {
      reading = digitalRead(pin[pinNumber]);
@@ -816,6 +819,8 @@ int pinNumber = 0;
 
         if(pinNumber == sizeof(pin)/sizeof(pin[0]))
           pinNumber = 0;
+          digitalWrite(CCPin,LOW);
+          digitalWrite(LedPin,LOW);
       }
    }
 }
