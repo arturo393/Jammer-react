@@ -5,7 +5,7 @@
 #include <EEPROM.h>
 #include "timers.h"
 
-const char VERSION[] = "3.0.2";
+const char VERSION[] = "3.0.3";
 
 /* Useful Constants */
 
@@ -95,23 +95,10 @@ void setup() {
     //                ,NULL
     //                ,tskIDLE_PRIORITY
     //                ,&jammer_handler);
-
-        xTaskCreate(vBlueTask
-                    ,"Blue"
-                    ,configMINIMAL_STACK_SIZE+20
-                    ,NULL
-                    ,tskIDLE_PRIORITY
-                    ,&blue_handler);
-
-        xTaskCreate(vCCTask
-                    ,"CC"
-                    ,configMINIMAL_STACK_SIZE
-                    ,NULL
-                    ,tskIDLE_PRIORITY
-                    ,&cc_handler);
-
-//        xTaskCreate(vIOTask,"IO",configMINIMAL_STACK_SIZE,NULL,tskIDLE_PRIORITY,&io_handler);
-        xTaskCreate(vTestTask,"Test",configMINIMAL_STACK_SIZE+10,NULL,tskIDLE_PRIORITY,&test_handler);
+///    xTaskCreate(vIOTask,"IO",configMINIMAL_STACK_SIZE,NULL,tskIDLE_PRIORITY,&io_handler);
+    xTaskCreate(vBlueTask,"Blue",configMINIMAL_STACK_SIZE+20,NULL,tskIDLE_PRIORITY,&blue_handler);
+    xTaskCreate(vCCTask,"CC",configMINIMAL_STACK_SIZE,NULL,tskIDLE_PRIORITY,&cc_handler);
+    xTaskCreate(vTestTask,"Test",configMINIMAL_STACK_SIZE+50,NULL,tskIDLE_PRIORITY,&test_handler);
 
         /* restart notification callback */
         xTimerNotification = xTimerCreate(
@@ -137,21 +124,20 @@ void setup() {
 //    (void *) 0,
 //     vTimerMemoryCheckCallback
 //  );
-
-        pinMode(CCOutPin, OUTPUT);
         pinMode(LedOutPin, OUTPUT);
+        pinMode(CCOutPin, OUTPUT);
         pinMode(BlEnOutPin, OUTPUT);
         pinMode(TNegOutPin, OUTPUT);
         pinMode(TPosOutPin, OUTPUT);
         pinMode(TinitOutPin,OUTPUT);
 
-
-        pinMode(DisarmInPin, INPUT_PULLUP);
-        pinMode(DNegInPin, INPUT_PULLUP);
-        pinMode(JamInPin, INPUT_PULLUP);
-        pinMode(DPosInPin, INPUT_PULLUP);
-        pinMode(IgnInPin, INPUT_PULLUP);
         pinMode(CCDisInPin, INPUT_PULLUP);
+        pinMode(IgnInPin, INPUT_PULLUP);
+        pinMode(JamInPin, INPUT_PULLUP);
+        pinMode(DNegInPin, INPUT_PULLUP);
+        pinMode(DisarmInPin, INPUT_PULLUP);
+        pinMode(DPosInPin, INPUT_PULLUP);
+
 
 
         digitalWrite(BlEnOutPin,HIGH);
@@ -503,6 +489,7 @@ static void vBlueTask(void *pvParameters)
                 {
                         readingString[c_data] = Serial1.read();
                         readingString[c_data+1] = '\0';
+                        Serial.println(readingString);
                         xLastDataReceived = xTaskGetTickCount();
                         c_data++;
                         // for overflow
@@ -542,6 +529,11 @@ static void vBlueTask(void *pvParameters)
                         xTaskNotify(cc_handler,0x10, eSetValueWithOverwrite );
                         Serial1.println("Reset");
                         readingString[0] = '\0';
+                        vTaskDelay(pdMS_TO_TICKS(500));
+                        do {
+                                wdt_enable(WDTO_15MS);
+                                for(;;) { }
+                        } while(0);
                 }
                 if(strcmp("estado", readingString) == 0)
                 {
@@ -559,9 +551,10 @@ static void vBlueTask(void *pvParameters)
                 if (strcmp("test",readingString) == 0)
                 {
                         Serial1.println("testing");
+
                         xTaskNotifyGive(test_handler);
+
                         readingString[0] = '\0';
-                        ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
                 }
                 if(strcmp("OK+CONN", readingString) == 0)
                 {
@@ -683,11 +676,7 @@ static void vCCTask(void *pvParameters)
                 {
                         Serial1.println("System Restart!");
                         digitalWrite(CCOutPin, CCOFF);
-                        vTaskDelay(pdMS_TO_TICKS(500));
-                        do {
-                                wdt_enable(WDTO_15MS);
-                                for(;;) { }
-                        } while(0);
+
                 }
         } /* end for(;;) */
 }
@@ -773,33 +762,32 @@ static void vTestTask(void *pvParameters)
         int ios = 6;
         uint8_t open[ios];
         uint8_t close[ios];       // door positive closed
-        uint8_t ready[ios];
+        uint8_t ready=0;
         uint8_t reading[ios];    // door positive reading
         uint8_t input[ios];
         uint8_t output[ios];
 
-        int timeout = 0;
+        uint8_t i = 0;
+        TickType_t timeout = pdMS_TO_TICKS(1000)*4;
         TickType_t lastDebounceTime = 0;
 
-        uint32_t ulNotifiedValue = 0x00;
 
-        input[0] = DisarmInPin;
-        input[1] = CCDisInPin;
-        input[2] = BlEnOutPin;
-        input[3] = TNegOutPin;
-        input[4] = TPosOutPin;
-        input[5] = TinitOutPin;
+        input[0] = CCDisInPin;
+        input[1] = IgnInPin;
+        input[2] = JamInPin;
+        input[3] = DNegInPin;
+        input[4] = DisarmInPin;
+        input[5] = DPosInPin;
 
-        output[0] = CCOutPin;
-        output[1] = LedOutPin;
-        output[2] = BlEnOutPin;
-        output[3] = DNegInPin;
-        output[4] = JamInPin;
-        output[5] = IgnInPin;
+        output[0] = LedOutPin;
+        output[1] = CCOutPin;
+        output[2] = TNegOutPin;
+        output[3] = TPosOutPin;
+        output[4] = TinitOutPin;
+        output[5] = BlEnOutPin;
 
-        for(int j = 0; j<ios; j++)
+        for(int j = 0; j<ios-1; j++)
         {
-                ready[j] = false;
                 open[j]  = false;
                 close[j] = false;
         }
@@ -807,31 +795,31 @@ static void vTestTask(void *pvParameters)
         for(;;)
         {
                 ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
-
+                xTimerStop(xTimerNotification,0);
                 vTaskSuspend(cc_handler);
-                vTaskSuspend(jammer_handler);
-                vTaskSuspend(protocol_handler);
-                vTaskSuspend(io_handler);
+            //    vTaskSuspend(jammer_handler);
+            //    vTaskSuspend(protocol_handler);
+            //    vTaskSuspend(io_handler);
 
                 lastDebounceTime = xTaskGetTickCount();
 
-                Serial1.println("Test init");
+                for(int i = 0; i < ios-1; i++)
+                      digitalWrite(output[i],HIGH);
 
-                for(int i = 0; i < ios; i++)
-                        digitalWrite(output[i],HIGH);
+                Serial1.print("ready ");
+                Serial1.print(ready);
 
-                for(int i = 0; ready[i] == pdTRUE && timeout == true; i++)
+                Serial1.print(" timeout");
+                Serial1.println(timeout);
+                while(ready != ios)
                 {
-                        if((xTaskGetTickCount() - lastDebounceTime) > configTICK_RATE_HZ*5)
-                                timeout = true;
 
-                        if(i == ios)
-                                i = 0;
 
                         reading[i]  = digitalRead(input[i]);
                         if(reading[i] == HIGH)
                         {
                                 open[i] =  pdTRUE;
+                                if(output[i] != BlEnOutPin)
                                 digitalWrite(output[i],LOW);
                         }
 
@@ -845,19 +833,26 @@ static void vTestTask(void *pvParameters)
                                 Serial1.print("/");
                                 Serial1.print(ios);
                                 Serial1.println(" OK");
-                                ready[i] = true;
+                                open[i] = false;
+                                close[i] = false;
+                                ready++;
                         }
+                        i++;
                         if(i == ios)
                                 i = 0;
+                        Serial1.println((xTaskGetTickCount() - lastDebounceTime) );
+                        if((xTaskGetTickCount() - lastDebounceTime) > timeout )
+                                ready = ios;
+                      } // end for
 
-                } // end for
 
-                timeout = false;
+                ready = 0;
                 vTaskResume(cc_handler);
-                vTaskResume(jammer_handler);
-                vTaskResume(protocol_handler);
-                vTaskResume(io_handler);
-                xTaskNotifyGive(blue_handler);
+                  xTimerStart(xTimerNotification,0);
+            //    vTaskResume(jammer_handler);
+            //    vTaskResume(protocol_handler);
+            //    vTaskResume(io_handler);
+                Serial1.println("Test ended");
         }
 }
 
