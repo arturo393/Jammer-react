@@ -4,13 +4,13 @@
 #include <avr/wdt.h>
 #include <timers.h>
 
-const char VERSION[] = "3.0.5";
+const char VERSION[] = "3.0.6";
 
 /* Useful Constants */
 
 #define TIME_AFTER_START 15
 #define TIME_AFTER_STOP 10
-#define TIME_TO_STOP_ENGINE 40
+#define TIME_TO_STOP_ENGINE 120 // secs
 #define TIME_TO_OPEN_DOOR 30
 #define DOOR_ENABLE_SECONDS 7
 #define NOTIFICATION_TIME 30
@@ -79,29 +79,27 @@ void restartHW();
 void updateState(int8_t _state);
 
 void setup() {
-  BaseType_t xReturned;
 
   Serial1.begin(9600);
   Serial.begin(9600);
 
   wdt_enable(WDTO_2S);
-
-  xReturned = xTaskCreate(vBlueTask, "Blue", configMINIMAL_STACK_SIZE, NULL,
-                          tskIDLE_PRIORITY + 1, &bh);
+  xTaskCreate(vBlueTask, "Blue", configMINIMAL_STACK_SIZE, NULL,
+              tskIDLE_PRIORITY + 1, &bh);
   xTaskCreate(vCCTask, "CC", configMINIMAL_STACK_SIZE - 30, NULL,
               tskIDLE_PRIORITY, &cch);
-  xTaskCreate(vProtocolTask, "Protocol", configMINIMAL_STACK_SIZE - 70, NULL,
+  xTaskCreate(vProtocolTask, "Protocol", configMINIMAL_STACK_SIZE - 30, NULL,
               tskIDLE_PRIORITY, &ph);
-  xTaskCreate(vJammingTask, "Jamming", configMINIMAL_STACK_SIZE - 70, NULL,
+  xTaskCreate(vJammingTask, "Jamming", configMINIMAL_STACK_SIZE - 30, NULL,
               tskIDLE_PRIORITY, &jh);
   xTaskCreate(vIOTask, "IO", configMINIMAL_STACK_SIZE - 20, NULL,
               tskIDLE_PRIORITY, &ioh);
-  xTaskCreate(vTestTask, "Test", configMINIMAL_STACK_SIZE, NULL,
-              tskIDLE_PRIORITY, &test_handler);
+  //  xTaskCreate(vTestTask, "Test", configMINIMAL_STACK_SIZE - 90, NULL,
+  //              tskIDLE_PRIORITY, &test_handler);
 
-  xTimerNotify = xTimerCreate("TimerNotify", configTICK_RATE_HZ * 5, pdTRUE,
+  xTimerNotify = xTimerCreate("TimerNotify", configTICK_RATE_HZ * 15, pdTRUE,
                               (void *)0, vTimerCallback);
-  xTimerRst = xTimerCreate("TimerRst", configTICK_RATE_HZ * 10, pdTRUE,
+  xTimerRst = xTimerCreate("TimerRst", configTICK_RATE_HZ * 20, pdTRUE,
                            (void *)0, vTimerRestart);
   xtimerMem = xTimerCreate("TimerMem", configTICK_RATE_HZ * 5, pdTRUE,
                            (void *)0, vTimerMemCallback);
@@ -123,7 +121,6 @@ void setup() {
 
   digitalWrite(BlEnOutPin, HIGH);
 
-  //    EEPROM.update(stateAddress, NORMAL_STATE);
   int8_t savedState = EEPROM.read(stateAddress);
   if (savedState == NORMAL_STATE)
     xTaskNotify(cch, 0x01, eSetValueWithOverwrite);
@@ -192,6 +189,7 @@ static void vProtocolTask(void *pvParameters) {
       vTaskDelay(pdMS_TO_TICKS(1000));
       if (c_ign_on >= TIME_AFTER_START) {
         digitalWrite(LedOutPin, HIGH);
+        Serial1.println("xArmed");
         armed = true;
       }
       Serial1.print("Ign on ");
@@ -216,6 +214,7 @@ static void vProtocolTask(void *pvParameters) {
     // end
     if (armed) {
       // check door status
+
       dPosR = digitalRead(DPosInPin);
 
       if (dPosR != lastDPosS) {
@@ -490,7 +489,7 @@ static void vBlueTask(void *pvParameters) {
     if (strcmp("test", readingString) == 0) {
       Serial1.println("testing");
 
-      xTaskNotifyGive(test_handler);
+      //    xTaskNotifyGive(test_handler);
 
       readingString[0] = '\0';
     }
@@ -546,18 +545,20 @@ static void vCCTask(void *pvParameters) {
       int8_t toggle = false;
       Serial1.println("Door Open");
       do {
+        Serial1.print(TIME_TO_STOP_ENGINE - c_open);
         digitalWrite(LedOutPin, toggle);
         c_open++;
         toggle = !toggle;
-        Serial1.print((TIME_TO_OPEN_DOOR * 2) - c_open);
+
         Serial1.print(" ");
-        vTaskDelay(pdMS_TO_TICKS(1000 / 2));
-      } while (c_open <= (TIME_AFTER_OPEN_DOOR * 2));
+        vTaskDelay(pdMS_TO_TICKS(1000));
+      } while (c_open <= TIME_TO_STOP_ENGINE);
 
       digitalWrite(LedOutPin, LOW);
       digitalWrite(CCOutPin, CCON);
       vTaskDelay(pdMS_TO_TICKS(500));
       vTaskResume(ioh);
+      vTaskResume(ph);
     }
 
     /* Deactivate CC and suspend tasks*/
@@ -588,6 +589,7 @@ static void vCCTask(void *pvParameters) {
       /* update state of the coda */
       vTaskDelay(pdMS_TO_TICKS(500));
       vTaskResume(ioh);
+      vTaskResume(ph);
     }
 
     /* Activate CC with and suspend tasks */
@@ -602,6 +604,9 @@ static void vCCTask(void *pvParameters) {
     if ((ulNotifiedValue == 0x10)) {
       Serial1.println("System Restart!");
       digitalWrite(CCOutPin, CCOFF);
+      vTaskResume(jh);
+      vTaskResume(ph);
+      vTaskResume(ioh);
     }
   } /* end for(;;) */
 }
@@ -701,17 +706,18 @@ static void vTestTask(void *pvParameters) {
     _isOk[j] = false;
   }
 
-  for (int j = 0; j < outputs; j++) {
-    digitalWrite(output[j], LOW);
-  }
-
   for (;;) {
+
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     xTimerStop(xTimerNotify, 0);
     vTaskSuspend(cch);
     vTaskSuspend(jh);
     vTaskSuspend(ph);
     vTaskSuspend(ioh);
+
+    for (int j = 0; j < outputs; j++) {
+      digitalWrite(output[j], LOW);
+    }
 
     lastDebounceTime = xTaskGetTickCount();
 
@@ -723,8 +729,6 @@ static void vTestTask(void *pvParameters) {
       while (ready != inputs) {
 
         reading[i] = digitalRead(input[i]);
-        Serial.print("DoorPos");
-        Serial.println(reading[5]);
         vTaskDelay(pdMS_TO_TICKS(200));
 
         // check reading status
@@ -819,6 +823,7 @@ static void vTestTask(void *pvParameters) {
     vTaskResume(ioh);
     vTaskResume(cch);
     Serial1.println("Test ended");
+    restartHW();
   }
 }
 
@@ -868,28 +873,28 @@ void vTimerMemCallback(TimerHandle_t xTimer) {
   /* Inspect our own high water mark on entering the task. */
   UBaseType_t uxHighWaterMark;
   uxHighWaterMark = uxTaskGetStackHighWaterMark(jh);
-  Serial.println("xStack Remain  ");
-  Serial.print("xJammingTask ");
-  Serial.print(uxHighWaterMark);
-  Serial.println(" bytes ");
+  Serial1.println("xStack Remain  ");
+  Serial1.print("xJammingTask ");
+  Serial1.print(uxHighWaterMark);
+  Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(ph);
-  Serial.print("xProtocolTask ");
-  Serial.print(uxHighWaterMark);
-  Serial.println(" bytes ");
+  Serial1.print("xProtocolTask ");
+  Serial1.print(uxHighWaterMark);
+  Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(ioh);
-  Serial.print("xIOTask ");
-  Serial.print(uxHighWaterMark);
-  Serial.println(" bytes ");
+  Serial1.print("xIOTask ");
+  Serial1.print(uxHighWaterMark);
+  Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(bh);
-  Serial.print("xBlueTask ");
-  Serial.print(uxHighWaterMark);
-  Serial.println(" bytes ");
+  Serial1.print("xBlueTask ");
+  Serial1.print(uxHighWaterMark);
+  Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(cch);
-  Serial.print("xCCTask ");
-  Serial.print(uxHighWaterMark);
-  Serial.println(" bytes ");
+  Serial1.print("xCCTask ");
+  Serial1.print(uxHighWaterMark);
+  Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(test_handler);
-  Serial.print("xTestTask ");
-  Serial.print(uxHighWaterMark);
-  Serial.println(" bytes ");
+  Serial1.print("xTestTask ");
+  Serial1.print(uxHighWaterMark);
+  Serial1.println(" bytes ");
 }
