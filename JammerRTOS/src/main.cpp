@@ -4,7 +4,7 @@
 #include <avr/wdt.h>
 #include <timers.h>
 
-const char VERSION[] = "3.0.6";
+const char VERSION[] = "3.0.7";
 
 /* Useful Constants */
 
@@ -99,9 +99,9 @@ void setup() {
 
   xTimerNotify = xTimerCreate("TimerNotify", configTICK_RATE_HZ * 15, pdTRUE,
                               (void *)0, vTimerCallback);
-  xTimerRst = xTimerCreate("TimerRst", configTICK_RATE_HZ * 20, pdTRUE,
+  xTimerRst = xTimerCreate("TimerRst", configTICK_RATE_HZ * 30, pdTRUE,
                            (void *)0, vTimerRestart);
-  xtimerMem = xTimerCreate("TimerMem", configTICK_RATE_HZ * 5, pdTRUE,
+  xtimerMem = xTimerCreate("TimerMem", configTICK_RATE_HZ * 120, pdTRUE,
                            (void *)0, vTimerMemCallback);
 
   pinMode(LedOutPin, OUTPUT);
@@ -184,17 +184,19 @@ static void vProtocolTask(void *pvParameters) {
     // check ignition ON
     c_ign_on = 0;
     c_ign_off = 0;
+
     while (ignition && !armed) {
       c_ign_on++;
       vTaskDelay(pdMS_TO_TICKS(1000));
+
+      Serial1.print("Ign on ");
+      Serial1.println(c_ign_on);
+      ignition = !digitalRead(IgnInPin);
       if (c_ign_on >= TIME_AFTER_START) {
         digitalWrite(LedOutPin, HIGH);
         Serial1.println("xArmed");
         armed = true;
       }
-      Serial1.print("Ign on ");
-      Serial1.println(c_ign_on);
-      ignition = !digitalRead(IgnInPin);
     }
     // end
 
@@ -202,15 +204,15 @@ static void vProtocolTask(void *pvParameters) {
     while (!ignition && armed) {
       c_ign_off++;
       vTaskDelay(pdMS_TO_TICKS(1000));
+
+      Serial1.print("xIgn off ");
+      Serial1.println(c_ign_off);
+      ignition = !digitalRead(IgnInPin);
       if (c_ign_off >= TIME_AFTER_STOP) {
         digitalWrite(LedOutPin, LOW);
         armed = false;
       }
-      Serial1.print("xIgn off ");
-      Serial1.println(c_ign_off);
-      ignition = !digitalRead(IgnInPin);
     }
-
     // end
     if (armed) {
       // check door status
@@ -488,9 +490,36 @@ static void vBlueTask(void *pvParameters) {
     }
     if (strcmp("test", readingString) == 0) {
       Serial1.println("testing");
-
       //    xTaskNotifyGive(test_handler);
-
+      readingString[0] = '\0';
+    }
+    if (strcmp("memtest", readingString) == 0) {
+      UBaseType_t uxHighWaterMark;
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(jh);
+      Serial1.println("xStack Remain  ");
+      Serial1.print("xJammingTask ");
+      Serial1.print(uxHighWaterMark);
+      Serial1.println(" bytes ");
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(ph);
+      Serial1.print("xProtocolTask ");
+      Serial1.print(uxHighWaterMark);
+      Serial1.println(" bytes ");
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(ioh);
+      Serial1.print("xIOTask ");
+      Serial1.print(uxHighWaterMark);
+      Serial1.println(" bytes ");
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(bh);
+      Serial1.print("xBlueTask ");
+      Serial1.print(uxHighWaterMark);
+      Serial1.println(" bytes ");
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(cch);
+      Serial1.print("xCCTask ");
+      Serial1.print(uxHighWaterMark);
+      Serial1.println(" bytes ");
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(test_handler);
+      Serial1.print("xTestTask ");
+      Serial1.print(uxHighWaterMark);
+      Serial1.println(" bytes ");
       readingString[0] = '\0';
     }
     if (strcmp("OK+CONN", readingString) == 0) {
@@ -594,11 +623,13 @@ static void vCCTask(void *pvParameters) {
 
     /* Activate CC with and suspend tasks */
     if ((ulNotifiedValue == 0x05)) {
-      vTaskSuspend(jh);
-      vTaskSuspend(ph);
+      //  vTaskSuspend(jh);
+      //  vTaskSuspend(ph);
       digitalWrite(CCOutPin, CCON);
-      digitalWrite(LedOutPin, LOW);
-      vTaskDelay(pdMS_TO_TICKS(500));
+      //  digitalWrite(LedOutPin, LOW);
+      //  vTaskDelay(pdMS_TO_TICKS(500));
+      //  vTaskResume(jh);
+      //  vTaskResume(ph);
     }
     /* Watchdog System-Reset */
     if ((ulNotifiedValue == 0x10)) {
@@ -658,7 +689,7 @@ static void vIOTask(void *pvParameters) {
         if (_current_state == LOW && blocked) {
           updateState(NORMAL_STATE);
           Serial1.println("CC OFF");
-          //    xTaskNotify(cch,0x10, eSetValueWithOverwrite );
+          xTaskNotify(cch, 0x10, eSetValueWithOverwrite);
         }
         // if CCDisInPin is LOW then CC ON
         if (_current_state == HIGH && !blocked) {
