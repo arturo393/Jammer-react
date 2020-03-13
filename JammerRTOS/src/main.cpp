@@ -77,6 +77,7 @@ void vTimerRestart(TimerHandle_t xTimer);
 
 void restartHW();
 void updateState(int8_t _state);
+void getHighWaterMark();
 
 void setup() {
 
@@ -101,8 +102,8 @@ void setup() {
                               (void *)0, vTimerCallback);
   xTimerRst = xTimerCreate("TimerRst", configTICK_RATE_HZ * 10, pdTRUE,
                            (void *)0, vTimerRestart);
-  xtimerMem = xTimerCreate("TimerMem", configTICK_RATE_HZ * 120, pdTRUE,
-                           (void *)0, vTimerMemCallback);
+  //  xtimerMem = xTimerCreate("TimerMem", configTICK_RATE_HZ * 120, pdTRUE,
+  //                           (void *)0, vTimerMemCallback);
 
   pinMode(LedOutPin, OUTPUT);
   pinMode(CCOutPin, OUTPUT);
@@ -422,7 +423,7 @@ static void vBlueTask(void *pvParameters) {
   i = 0;
   readingString[0] = '\0';
   xLastDataReceived = xTaskGetTickCount();
-  xTimerStart(xtimerMem, 0);
+  //  xTimerStart(xtimerMem, 0);
   xTimerStart(xTimerRst, 0);
 
   for (;;) {
@@ -501,32 +502,7 @@ static void vBlueTask(void *pvParameters) {
       readingString[0] = '\0';
     }
     if (strcmp("memtest", readingString) == 0) {
-      UBaseType_t uxHighWaterMark;
-      uxHighWaterMark = uxTaskGetStackHighWaterMark(jh);
-      Serial1.println("xStack Remain  ");
-      Serial1.print("xJammingTask ");
-      Serial1.print(uxHighWaterMark);
-      Serial1.println(" bytes ");
-      uxHighWaterMark = uxTaskGetStackHighWaterMark(ph);
-      Serial1.print("xProtocolTask ");
-      Serial1.print(uxHighWaterMark);
-      Serial1.println(" bytes ");
-      uxHighWaterMark = uxTaskGetStackHighWaterMark(ioh);
-      Serial1.print("xIOTask ");
-      Serial1.print(uxHighWaterMark);
-      Serial1.println(" bytes ");
-      uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-      Serial1.print("xBlueTask ");
-      Serial1.print(uxHighWaterMark);
-      Serial1.println(" bytes ");
-      uxHighWaterMark = uxTaskGetStackHighWaterMark(cch);
-      Serial1.print("xCCTask ");
-      Serial1.print(uxHighWaterMark);
-      Serial1.println(" bytes ");
-      uxHighWaterMark = uxTaskGetStackHighWaterMark(test_handler);
-      Serial1.print("xTestTask ");
-      Serial1.print(uxHighWaterMark);
-      Serial1.println(" bytes ");
+      getHighWaterMark();
       readingString[0] = '\0';
     }
     if (strcmp("alocate", readingString) == 0) {
@@ -911,32 +887,34 @@ void updateState(int8_t _state) {
   Serial1.print("s");
   Serial1.println(_state);
 }
-void vTimerMemCallback(TimerHandle_t xTimer) {
+void vTimerMemCallback(TimerHandle_t xTimer) { getHighWaterMark(); }
+
+void getHighWaterMark() {
   /* Inspect our own high water mark on entering the task. */
   UBaseType_t uxHighWaterMark;
   uxHighWaterMark = uxTaskGetStackHighWaterMark(jh);
   Serial1.println("xStack Remain  ");
   Serial1.print("xJammingTask ");
-  Serial1.print(uxHighWaterMark);
+  Serial1.print(uxHighWaterMark * 2);
   Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(ph);
   Serial1.print("xProtocolTask ");
-  Serial1.print(uxHighWaterMark);
+  Serial1.print(uxHighWaterMark * 2);
   Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(ioh);
   Serial1.print("xIOTask ");
-  Serial1.print(uxHighWaterMark);
+  Serial1.print(uxHighWaterMark * 2);
   Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(bh);
   Serial1.print("xBlueTask ");
-  Serial1.print(uxHighWaterMark);
+  Serial1.print(uxHighWaterMark * 2);
   Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(cch);
   Serial1.print("xCCTask ");
-  Serial1.print(uxHighWaterMark);
+  Serial1.print(uxHighWaterMark * 2);
   Serial1.println(" bytes ");
   uxHighWaterMark = uxTaskGetStackHighWaterMark(test_handler);
   Serial1.print("xTestTask ");
-  Serial1.print(uxHighWaterMark);
+  Serial1.print(uxHighWaterMark * 2);
   Serial1.println(" bytes ");
 }
