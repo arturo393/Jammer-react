@@ -4,7 +4,7 @@
 #include <avr/wdt.h>
 #include <timers.h>
 
-const char VERSION[] = "3.0.7";
+const char VERSION[] = "3.0.8";
 
 /* Useful Constants */
 
@@ -84,22 +84,22 @@ void setup() {
   Serial.begin(9600);
 
   wdt_enable(WDTO_2S);
-  xTaskCreate(vBlueTask, "Blue", configMINIMAL_STACK_SIZE, NULL,
+  xTaskCreate(vBlueTask, "Blue", configMINIMAL_STACK_SIZE + 40, NULL,
               tskIDLE_PRIORITY + 1, &bh);
   xTaskCreate(vCCTask, "CC", configMINIMAL_STACK_SIZE - 30, NULL,
               tskIDLE_PRIORITY, &cch);
   xTaskCreate(vProtocolTask, "Protocol", configMINIMAL_STACK_SIZE - 30, NULL,
               tskIDLE_PRIORITY, &ph);
-  xTaskCreate(vJammingTask, "Jamming", configMINIMAL_STACK_SIZE - 30, NULL,
+  xTaskCreate(vJammingTask, "Jamming", configMINIMAL_STACK_SIZE - 20, NULL,
               tskIDLE_PRIORITY, &jh);
   xTaskCreate(vIOTask, "IO", configMINIMAL_STACK_SIZE - 20, NULL,
               tskIDLE_PRIORITY, &ioh);
-  //  xTaskCreate(vTestTask, "Test", configMINIMAL_STACK_SIZE - 90, NULL,
+  //  xTaskCreate(vTestTask, "Test", configMINIMAL_STACK_SIZE, NULL,
   //              tskIDLE_PRIORITY, &test_handler);
 
   xTimerNotify = xTimerCreate("TimerNotify", configTICK_RATE_HZ * 15, pdTRUE,
                               (void *)0, vTimerCallback);
-  xTimerRst = xTimerCreate("TimerRst", configTICK_RATE_HZ * 30, pdTRUE,
+  xTimerRst = xTimerCreate("TimerRst", configTICK_RATE_HZ * 10, pdTRUE,
                            (void *)0, vTimerRestart);
   xtimerMem = xTimerCreate("TimerMem", configTICK_RATE_HZ * 120, pdTRUE,
                            (void *)0, vTimerMemCallback);
@@ -414,12 +414,19 @@ static void vBlueTask(void *pvParameters) {
   char readingString[BUFF_SIZE]; /* reading string from bluetooth */
   TickType_t xLastDataReceived;
   uint8_t config = pdTRUE;
+  UBaseType_t uxHighWaterMark;
 
+  int i;
+  String membuff = "0";
+
+  i = 0;
   readingString[0] = '\0';
   xLastDataReceived = xTaskGetTickCount();
   xTimerStart(xtimerMem, 0);
+  xTimerStart(xTimerRst, 0);
 
   for (;;) {
+
     if (config) {
       Serial1.print("AT+DEFAULT\r\n");
       vTaskDelay(configTICK_RATE_HZ);
@@ -508,7 +515,7 @@ static void vBlueTask(void *pvParameters) {
       Serial1.print("xIOTask ");
       Serial1.print(uxHighWaterMark);
       Serial1.println(" bytes ");
-      uxHighWaterMark = uxTaskGetStackHighWaterMark(bh);
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
       Serial1.print("xBlueTask ");
       Serial1.print(uxHighWaterMark);
       Serial1.println(" bytes ");
@@ -521,6 +528,18 @@ static void vBlueTask(void *pvParameters) {
       Serial1.print(uxHighWaterMark);
       Serial1.println(" bytes ");
       readingString[0] = '\0';
+    }
+    if (strcmp("alocate", readingString) == 0) {
+      membuff.concat("corega");
+      Serial1.println(membuff);
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(bh);
+      Serial1.print("xBlueTask ");
+      Serial1.print(uxHighWaterMark);
+      Serial1.println(" bytes ");
+      i = 1 + i;
+      //    Serial1.print(i);
+      //    Serial1.println(" Bytes");
+      vTaskDelay(configTICK_RATE_HZ / 10);
     }
     if (strcmp("OK+CONN", readingString) == 0) {
       xTimerStart(xTimerNotify, 0);
@@ -560,15 +579,14 @@ static void vCCTask(void *pvParameters) {
         &ulNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
         xFrequency);      /* Block indefinitely. */
 
-    /* Deactivate CC with CCOutPin */
     if ((ulNotifiedValue == 0x01)) {
       digitalWrite(CCOutPin, CCOFF);
     }
 
     /* Activate CC after 1 minute */
     if ((ulNotifiedValue == 0x02)) {
-      vTaskSuspend(jh);
-      vTaskSuspend(ph);
+      vTaskDelete(jh);
+      vTaskDelete(ph);
       vTaskSuspend(ioh);
       int8_t c_open = 0;
       int8_t toggle = false;
@@ -586,14 +604,12 @@ static void vCCTask(void *pvParameters) {
       digitalWrite(LedOutPin, LOW);
       digitalWrite(CCOutPin, CCON);
       vTaskDelay(pdMS_TO_TICKS(500));
-      vTaskResume(ioh);
-      vTaskResume(ph);
     }
 
     /* Deactivate CC and suspend tasks*/
     if ((ulNotifiedValue == 0x03)) {
-      vTaskSuspend(jh);
-      vTaskSuspend(ph);
+      vTaskDelete(jh);
+      vTaskDelete(ph);
       digitalWrite(CCOutPin, CCOFF);
       digitalWrite(LedOutPin, LOW);
       vTaskDelay(pdMS_TO_TICKS(500));
@@ -602,8 +618,8 @@ static void vCCTask(void *pvParameters) {
     /* Activate CC with digital CCOutPin in a On/Off secuence */
     if ((ulNotifiedValue == 0x04)) {
       for (int j = 0; j < 2; j++) {
-        vTaskSuspend(jh);
-        vTaskSuspend(ph);
+        vTaskDelete(jh);
+        vTaskDelete(ph);
         vTaskSuspend(ioh);
         /* turn on for 2 seconds */
         digitalWrite(CCOutPin, CCON);
@@ -615,28 +631,22 @@ static void vCCTask(void *pvParameters) {
       /* finally turn off */
       digitalWrite(CCOutPin, CCON);
       digitalWrite(LedOutPin, LOW);
-      /* update state of the coda */
-      vTaskDelay(pdMS_TO_TICKS(500));
-      vTaskResume(ioh);
-      vTaskResume(ph);
     }
 
     /* Activate CC with and suspend tasks */
     if ((ulNotifiedValue == 0x05)) {
-      //  vTaskSuspend(jh);
-      //  vTaskSuspend(ph);
+      vTaskDelete(jh);
+      vTaskDelete(ph);
       digitalWrite(CCOutPin, CCON);
-      //  digitalWrite(LedOutPin, LOW);
-      //  vTaskDelay(pdMS_TO_TICKS(500));
-      //  vTaskResume(jh);
-      //  vTaskResume(ph);
+      digitalWrite(LedOutPin, LOW);
     }
-    /* Watchdog System-Reset */
     if ((ulNotifiedValue == 0x10)) {
-      Serial1.println("System Restart!");
+      Serial1.println("System Activated!");
       digitalWrite(CCOutPin, CCOFF);
-      vTaskResume(jh);
-      vTaskResume(ph);
+      xTaskCreate(vProtocolTask, "Protocol", configMINIMAL_STACK_SIZE - 30,
+                  NULL, tskIDLE_PRIORITY, &ph);
+      xTaskCreate(vJammingTask, "Jamming", configMINIMAL_STACK_SIZE - 30, NULL,
+                  tskIDLE_PRIORITY, &jh);
       vTaskResume(ioh);
     }
   } /* end for(;;) */
@@ -891,6 +901,7 @@ void vTimerRestart(TimerHandle_t xTimer) {
   else
     c_off = 0;
 
+  Serial.println(c_off);
   if (c_off >= TIME_RESET_HW)
     restartHW();
 }
