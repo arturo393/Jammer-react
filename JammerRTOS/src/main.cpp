@@ -5,8 +5,13 @@
 #include <avr/wdt.h>
 #include <timers.h>
 
+<<<<<<< HEAD
 const char VERSION[] = "3.0.9";
 int8_t DEBUG = 0;
+=======
+const char VERSION[] = "3.0.8";
+
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
 /* Useful Constants */
 #define TIME_AFTER_START 15
 #define TIME_AFTER_STOP 10
@@ -78,10 +83,14 @@ void vTimerRestart(TimerHandle_t xTimer);
 
 void restartHW();
 void updateState(int8_t _state);
+<<<<<<< HEAD
 void printBle(int8_t _print, char *_buff);
 void getHighWaterMark();
 void getDIO();
 void getState();
+=======
+void getHighWaterMark();
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
 
 void setup() {
 
@@ -95,7 +104,11 @@ void setup() {
               tskIDLE_PRIORITY, &cch);
   xTaskCreate(vProtocolTask, "Protocol", configMINIMAL_STACK_SIZE, NULL,
               tskIDLE_PRIORITY, &ph);
+<<<<<<< HEAD
   xTaskCreate(vJammingTask, "Jamming", configMINIMAL_STACK_SIZE - 10, NULL,
+=======
+  xTaskCreate(vJammingTask, "Jamming", configMINIMAL_STACK_SIZE - 20, NULL,
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
               tskIDLE_PRIORITY, &jh);
   xTaskCreate(vIOTask, "IO", configMINIMAL_STACK_SIZE - 30, NULL,
               tskIDLE_PRIORITY, &ioh);
@@ -106,7 +119,11 @@ void setup() {
                               (void *)0, vTimerCallback);
   xTimerRst = xTimerCreate("TimerRst", configTICK_RATE_HZ * 10, pdTRUE,
                            (void *)0, vTimerRestart);
+<<<<<<< HEAD
   //  xtimerMem = xTimerCreate("TimerMem", configTICK_RATE_HZ * 5, pdTRUE,
+=======
+  //  xtimerMem = xTimerCreate("TimerMem", configTICK_RATE_HZ * 120, pdTRUE,
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
   //                           (void *)0, vTimerMemCallback);
 
   pinMode(LedOutPin, OUTPUT);
@@ -425,7 +442,16 @@ static void vBlueTask(void *pvParameters) {
   uint8_t c_data = 0;
   char readingString[BUFF_SIZE]; /* reading string from bluetooth */
   TickType_t xLastDataReceived;
+<<<<<<< HEAD
+=======
+  uint8_t config = pdTRUE;
+  UBaseType_t uxHighWaterMark;
 
+  int i;
+  String membuff = "0";
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
+
+  i = 0;
   readingString[0] = '\0';
   xLastDataReceived = xTaskGetTickCount();
   //  xTimerStart(xtimerMem, 0);
@@ -433,7 +459,11 @@ static void vBlueTask(void *pvParameters) {
 
   for (;;) {
 
+<<<<<<< HEAD
     if (EEPROM.read(stateAddress) > 6) {
+=======
+    if (config) {
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
       Serial1.print("AT+DEFAULT\r\n");
       vTaskDelay(configTICK_RATE_HZ);
       Serial1.print("AT+RESET\r\n");
@@ -503,11 +533,29 @@ static void vBlueTask(void *pvParameters) {
       //    xTaskNotifyGive(test_handler);
       readingString[0] = '\0';
     }
+<<<<<<< HEAD
     if (strcmp("getdio", readingString) == 0) {
       getDIO();
     }
     if (strcmp("getmem", readingString) == 0) {
       getHighWaterMark();
+=======
+    if (strcmp("memtest", readingString) == 0) {
+      getHighWaterMark();
+      readingString[0] = '\0';
+    }
+    if (strcmp("alocate", readingString) == 0) {
+      membuff.concat("corega");
+      Serial1.println(membuff);
+      uxHighWaterMark = uxTaskGetStackHighWaterMark(bh);
+      Serial1.print("xBlueTask ");
+      Serial1.print(uxHighWaterMark);
+      Serial1.println(" bytes ");
+      i = 1 + i;
+      //    Serial1.print(i);
+      //    Serial1.println(" Bytes");
+      vTaskDelay(configTICK_RATE_HZ / 10);
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
     }
     if (strcmp("OK+CONN", readingString) == 0) {
       xTimerStart(xTimerNotify, 0);
@@ -590,9 +638,15 @@ static void vCCTask(void *pvParameters) {
 
       printBle(DEBUG, "Jammed CC activation \n");
       for (int j = 0; j < 2; j++) {
+<<<<<<< HEAD
 
         vTaskDelete(jh);
         vTaskDelete(ph);
+=======
+        vTaskDelete(jh);
+        vTaskDelete(ph);
+        vTaskSuspend(ioh);
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
         /* turn on for 2 seconds */
         digitalWrite(CCOutPin, CCON);
         vTaskDelay(pdMS_TO_TICKS(5000));
@@ -612,7 +666,11 @@ static void vCCTask(void *pvParameters) {
       digitalWrite(LedOutPin, LOW);
     }
     if ((ulNotifiedValue == 0x10)) {
+<<<<<<< HEAD
       printBle(DEBUG, "\nSystem Activate!\n");
+=======
+      Serial1.println("System Activated!");
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
       digitalWrite(CCOutPin, CCOFF);
       xTaskCreate(vProtocolTask, "Protocol", configMINIMAL_STACK_SIZE - 30,
                   NULL, tskIDLE_PRIORITY, &ph);
@@ -882,6 +940,10 @@ void updateState(int8_t _state) {
   printBle(DEBUG, _message);
 }
 void vTimerMemCallback(TimerHandle_t xTimer) { getHighWaterMark(); }
+<<<<<<< HEAD
+=======
+
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
 void getHighWaterMark() {
   /* Inspect our own high water mark on entering the task. */
   UBaseType_t uxHighWaterMark;
@@ -889,6 +951,7 @@ void getHighWaterMark() {
   printBle(DEBUG, "xStack Remain\n");
 
   uxHighWaterMark = uxTaskGetStackHighWaterMark(jh);
+<<<<<<< HEAD
   printBle(DEBUG, "xJammingTask ");
   sprintf(_message, "%d bytes\n", uxHighWaterMark);
   printBle(DEBUG, _message);
@@ -959,4 +1022,30 @@ void getState() {
   int8_t savedState = EEPROM.read(stateAddress);
   sprintf(_message, "s%d\nv%s\n", savedState, VERSION);
   printBle(DEBUG, _message);
+=======
+  Serial1.println("xStack Remain  ");
+  Serial1.print("xJammingTask ");
+  Serial1.print(uxHighWaterMark * 2);
+  Serial1.println(" bytes ");
+  uxHighWaterMark = uxTaskGetStackHighWaterMark(ph);
+  Serial1.print("xProtocolTask ");
+  Serial1.print(uxHighWaterMark * 2);
+  Serial1.println(" bytes ");
+  uxHighWaterMark = uxTaskGetStackHighWaterMark(ioh);
+  Serial1.print("xIOTask ");
+  Serial1.print(uxHighWaterMark * 2);
+  Serial1.println(" bytes ");
+  uxHighWaterMark = uxTaskGetStackHighWaterMark(bh);
+  Serial1.print("xBlueTask ");
+  Serial1.print(uxHighWaterMark * 2);
+  Serial1.println(" bytes ");
+  uxHighWaterMark = uxTaskGetStackHighWaterMark(cch);
+  Serial1.print("xCCTask ");
+  Serial1.print(uxHighWaterMark * 2);
+  Serial1.println(" bytes ");
+  uxHighWaterMark = uxTaskGetStackHighWaterMark(test_handler);
+  Serial1.print("xTestTask ");
+  Serial1.print(uxHighWaterMark * 2);
+  Serial1.println(" bytes ");
+>>>>>>> b4c199183646342b025353b55e717f9dbb9d1057
 }
